@@ -1,0 +1,139 @@
+package com.bookshelf.service;
+
+import com.bookshelf.dto.GoogleBooksResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+@Slf4j
+public class GoogleBooksService {
+
+    private final WebClient webClient;
+
+    @Value("${google.books.api.key:}")
+    private String apiKey;
+
+    public GoogleBooksService(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder
+                .baseUrl("https://www.googleapis.com/books/v1")
+                .build();
+    }
+
+    public Map<String, Object> fetchMetadata(String title, String author) {
+        Map<String, Object> enrichedMetadata = new HashMap<>();
+
+        try {
+            // Build search query
+            StringBuilder query = new StringBuilder();
+            if (title != null && !title.trim().isEmpty()) {
+                query.append("intitle:").append(title.trim());
+            }
+            if (author != null && !author.trim().isEmpty()) {
+                if (query.length() > 0) {
+                    query.append("+");
+                }
+                query.append("inauthor:").append(author.trim());
+            }
+
+            if (query.length() == 0) {
+                log.warn("No title or author provided for Google Books lookup");
+                return enrichedMetadata;
+            }
+
+            // Make API request
+            String uri = "/volumes?q=" + query.toString() + "&maxResults=1";
+            if (apiKey != null && !apiKey.trim().isEmpty()) {
+                uri += "&key=" + apiKey;
+            }
+
+            GoogleBooksResponse response = webClient.get()
+                    .uri(uri)
+                    .retrieve()
+                    .bodyToMono(GoogleBooksResponse.class)
+                    .onErrorResume(e -> {
+                        log.error("Google Books API error: {}", e.getMessage());
+                        return Mono.empty();
+                    })
+                    .block();
+
+            if (response != null && response.getItems() != null && !response.getItems().isEmpty()) {
+                GoogleBooksResponse.VolumeInfo volumeInfo = response.getItems().get(0).getVolumeInfo();
+
+                if (volumeInfo != null) {
+                    // Extract title
+                    if (volumeInfo.getTitle() != null) {
+                        enrichedMetadata.put("title", volumeInfo.getTitle());
+                    }
+
+                    // Extract author
+                    if (volumeInfo.getAuthors() != null && !volumeInfo.getAuthors().isEmpty()) {
+                        enrichedMetadata.put("author", String.join(", ", volumeInfo.getAuthors()));
+                    }
+
+                    // Extract description
+                    if (volumeInfo.getDescription() != null) {
+                        enrichedMetadata.put("description", volumeInfo.getDescription());
+                    }
+
+                    // Extract genre/category
+                    if (volumeInfo.getCategories() != null && !volumeInfo.getCategories().isEmpty()) {
+                        enrichedMetadata.put("genre", volumeInfo.getCategories().get(0));
+                    }
+
+                    // Extract cover image URL
+                    if (volumeInfo.getImageLinks() != null) {
+                        String coverUrl = volumeInfo.getImageLinks().getThumbnail();
+                        if (coverUrl == null) {
+                            coverUrl = volumeInfo.getImageLinks().getSmallThumbnail();
+                        }
+                        if (coverUrl != null) {
+                            // Upgrade to HTTPS if needed
+                            coverUrl = coverUrl.replace("http://", "https://");
+                            enrichedMetadata.put("coverUrl", coverUrl);
+                        }
+                    }
+
+                    // Extract page count (if not already set)
+                    if (volumeInfo.getPageCount() != null) {
+                        enrichedMetadata.put("pageCount", volumeInfo.getPageCount());
+                    }
+
+                    log.info("Successfully fetched metadata from Google Books for: {}", title);
+                }
+            } else {
+                log.info("No results found from Google Books for: {}", title);
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to fetch Google Books metadata", e);
+            // Graceful degradation - return empty metadata
+        }
+
+        return enrichedMetadata;
+    }
+
+    public GoogleBooksResponse searchBooks(String query) {
+        try {
+            String uri = "/volumes?q=" + query;
+            if (apiKey != null && !apiKey.trim().isEmpty()) {
+                uri += "&key=" + apiKey;
+            }
+
+            return webClient.get()
+                    .uri(uri)
+                    .retrieve()
+                    .bodyToMono(GoogleBooksResponse.class)
+                    .block();
+
+        } catch (Exception e) {
+            log.error("Failed to search Google Books", e);
+            return new GoogleBooksResponse();
+        }
+    }
+}
