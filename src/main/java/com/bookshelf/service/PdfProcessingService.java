@@ -15,9 +15,11 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -38,14 +40,20 @@ public class PdfProcessingService {
         Map<String, Object> metadata = new HashMap<>();
 
         try {
-            // Ensure directories exist
-            Files.createDirectories(Paths.get(pdfDirectory));
-            Files.createDirectories(Paths.get(thumbnailDirectory));
+            // Resolve to absolute paths so Tomcat's working directory never interferes
+            Path pdfDir = Paths.get(pdfDirectory).toAbsolutePath().normalize();
+            Path thumbDir = Paths.get(thumbnailDirectory).toAbsolutePath().normalize();
 
-            // Save PDF to disk
+            // Ensure directories exist
+            Files.createDirectories(pdfDir);
+            Files.createDirectories(thumbDir);
+
+            // Save PDF to disk using Files.copy (safe with absolute paths)
             String pdfFileName = bookId + ".pdf";
-            Path pdfPath = Paths.get(pdfDirectory, pdfFileName);
-            file.transferTo(pdfPath.toFile());
+            Path pdfPath = pdfDir.resolve(pdfFileName);
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, pdfPath, StandardCopyOption.REPLACE_EXISTING);
+            }
             metadata.put("pdfPath", pdfPath.toString());
 
             // Calculate file hash
@@ -80,7 +88,7 @@ public class PdfProcessingService {
                 }
 
                 // Generate thumbnail from first page
-                String thumbnailPath = generateThumbnail(document, bookId);
+                String thumbnailPath = generateThumbnail(document, bookId, thumbDir);
                 metadata.put("thumbnailPath", thumbnailPath);
 
                 log.info("Successfully processed PDF: {}", pdfFileName);
@@ -94,13 +102,13 @@ public class PdfProcessingService {
         }
     }
 
-    private String generateThumbnail(PDDocument document, UUID bookId) throws IOException {
+    private String generateThumbnail(PDDocument document, UUID bookId, Path thumbDir) throws IOException {
         try {
             PDFRenderer renderer = new PDFRenderer(document);
             BufferedImage image = renderer.renderImageWithDPI(0, 150); // First page at 150 DPI
 
             String thumbnailFileName = bookId + ".jpg";
-            Path thumbnailPath = Paths.get(thumbnailDirectory, thumbnailFileName);
+            Path thumbnailPath = thumbDir.resolve(thumbnailFileName);
 
             ImageIO.write(image, "JPEG", thumbnailPath.toFile());
 
