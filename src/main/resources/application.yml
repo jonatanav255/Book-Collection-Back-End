@@ -30,6 +30,9 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  tomcat:
+    max-http-form-post-size: 150MB
+    max-swallow-size: 150MB
 
 bookshelf:
   storage:
