@@ -37,10 +37,12 @@ public class Book {
     private Integer pageCount;
 
     @Column(name = "current_page")
+    @Builder.Default
     private Integer currentPage = 0;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private ReadingStatus status = ReadingStatus.UNREAD;
 
     @Column(name = "pdf_path", length = 1000, nullable = false)

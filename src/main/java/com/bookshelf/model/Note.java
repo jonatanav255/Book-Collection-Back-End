@@ -34,6 +34,7 @@ public class Note {
     private String color;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean pinned = false;
 
     @CreationTimestamp
