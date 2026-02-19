@@ -83,8 +83,8 @@ public class BookController {
     @GetMapping("/{id}/pdf")
     public ResponseEntity<Resource> getPdf(@PathVariable UUID id) {
         BookResponse book = bookService.getBookById(id);
-        File pdfFile = pdfProcessingService.getPdfFile(book.getFileHash() != null ?
-            "/data/bookshelf/pdfs/" + id + ".pdf" : "");
+        String pdfPath = bookService.getPdfPath(id);
+        File pdfFile = pdfProcessingService.getPdfFile(pdfPath);
 
         Resource resource = new FileSystemResource(pdfFile);
 
@@ -96,9 +96,8 @@ public class BookController {
 
     @GetMapping("/{id}/thumbnail")
     public ResponseEntity<Resource> getThumbnail(@PathVariable UUID id) {
-        BookResponse book = bookService.getBookById(id);
-        File thumbnailFile = pdfProcessingService.getThumbnailFile(
-            "/data/bookshelf/thumbnails/" + id + ".jpg");
+        String thumbnailPath = bookService.getThumbnailPath(id);
+        File thumbnailFile = pdfProcessingService.getThumbnailFile(thumbnailPath);
 
         Resource resource = new FileSystemResource(thumbnailFile);
 

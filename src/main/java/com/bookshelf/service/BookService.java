@@ -214,6 +214,18 @@ public class BookService {
                 .build();
     }
 
+    public String getPdfPath(UUID bookId) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + bookId));
+        return book.getPdfPath();
+    }
+
+    public String getThumbnailPath(UUID bookId) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + bookId));
+        return book.getThumbnailPath();
+    }
+
     private BookResponse mapToResponse(Book book) {
         double progressPercentage = 0.0;
         if (book.getPageCount() != null && book.getPageCount() > 0 && book.getCurrentPage() != null) {

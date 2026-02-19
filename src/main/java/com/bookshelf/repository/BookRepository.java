@@ -37,7 +37,7 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
            "CASE WHEN :sortBy = 'progress' THEN (CAST(b.currentPage AS double) / CAST(b.pageCount AS double)) END DESC")
     List<Book> findByStatusSorted(@Param("status") ReadingStatus status, @Param("sortBy") String sortBy);
 
-    @Query("SELECT b FROM Book b WHERE b.lastReadAt IS NOT NULL ORDER BY b.lastReadAt DESC LIMIT 1")
+    @Query(value = "SELECT * FROM books WHERE last_read_at IS NOT NULL ORDER BY last_read_at DESC LIMIT 1", nativeQuery = true)
     Optional<Book> findMostRecentlyRead();
 
     long countByStatus(ReadingStatus status);
