@@ -1,6 +1,7 @@
 package com.bookshelf.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,7 +22,9 @@ public class GlobalExceptionHandler {
         error.put("status", HttpStatus.NOT_FOUND.value());
         error.put("error", "Not Found");
         error.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
     }
 
     @ExceptionHandler(DuplicateBookException.class)
@@ -31,7 +34,9 @@ public class GlobalExceptionHandler {
         error.put("status", HttpStatus.CONFLICT.value());
         error.put("error", "Conflict");
         error.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
     }
 
     @ExceptionHandler(PdfProcessingException.class)
@@ -41,7 +46,9 @@ public class GlobalExceptionHandler {
         error.put("status", HttpStatus.BAD_REQUEST.value());
         error.put("error", "PDF Processing Error");
         error.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -51,7 +58,9 @@ public class GlobalExceptionHandler {
         error.put("status", HttpStatus.PAYLOAD_TOO_LARGE.value());
         error.put("error", "File Too Large");
         error.put("message", "File size exceeds maximum allowed limit");
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(error);
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -67,7 +76,9 @@ public class GlobalExceptionHandler {
         });
         error.put("validationErrors", validationErrors);
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
     }
 
     @ExceptionHandler(Exception.class)
@@ -77,6 +88,8 @@ public class GlobalExceptionHandler {
         error.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         error.put("error", "Internal Server Error");
         error.put("message", "An unexpected error occurred");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
     }
 }
