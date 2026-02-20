@@ -1,5 +1,8 @@
 package com.bookshelf.controller;
 
+import com.bookshelf.dto.AudioGenerationProgress;
+import com.bookshelf.dto.PageTextWithTimings;
+import com.bookshelf.service.BatchAudioGenerationService;
 import com.bookshelf.service.TextToSpeechService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +22,7 @@ import java.util.UUID;
 public class AudioController {
 
     private final TextToSpeechService textToSpeechService;
+    private final BatchAudioGenerationService batchAudioGenerationService;
 
     /**
      * Get audio for a specific page of a book
@@ -66,6 +70,26 @@ public class AudioController {
     }
 
     /**
+     * Get page text with word-level timestamps for read-along highlighting
+     * This generates fresh audio with timing data (not cached)
+     *
+     * @param bookId Book UUID
+     * @param pageNumber Page number (1-indexed)
+     * @return JSON with text, word timings, and audio URL
+     */
+    @GetMapping("/{bookId}/pages/{pageNumber}/text-with-timings")
+    public ResponseEntity<PageTextWithTimings> getPageTextWithTimings(
+            @PathVariable UUID bookId,
+            @PathVariable int pageNumber) {
+
+        log.info("Received request for page text with timings: book={}, page={}", bookId, pageNumber);
+
+        PageTextWithTimings result = textToSpeechService.generatePageAudioWithTimings(bookId, pageNumber);
+
+        return ResponseEntity.ok(result);
+    }
+
+    /**
      * Delete all cached audio for a book
      *
      * @param bookId Book UUID
@@ -78,6 +102,47 @@ public class AudioController {
 
         return ResponseEntity.ok()
                 .body(new MessageResponse("Audio files deleted successfully"));
+    }
+
+    /**
+     * Start batch generation for all pages of a book
+     *
+     * @param bookId Book UUID
+     */
+    @PostMapping("/{bookId}/audio/generate-all")
+    public ResponseEntity<?> startBatchGeneration(@PathVariable UUID bookId) {
+        log.info("Starting batch audio generation for book {}", bookId);
+
+        batchAudioGenerationService.startBatchGeneration(bookId);
+
+        return ResponseEntity.accepted()
+                .body(new MessageResponse("Batch audio generation started"));
+    }
+
+    /**
+     * Get batch generation progress for a book
+     *
+     * @param bookId Book UUID
+     */
+    @GetMapping("/{bookId}/audio/generation-status")
+    public ResponseEntity<AudioGenerationProgress> getBatchGenerationStatus(@PathVariable UUID bookId) {
+        AudioGenerationProgress progress = batchAudioGenerationService.getProgress(bookId);
+        return ResponseEntity.ok(progress);
+    }
+
+    /**
+     * Cancel ongoing batch generation
+     *
+     * @param bookId Book UUID
+     */
+    @DeleteMapping("/{bookId}/audio/generation")
+    public ResponseEntity<?> cancelBatchGeneration(@PathVariable UUID bookId) {
+        log.info("Cancelling batch generation for book {}", bookId);
+
+        batchAudioGenerationService.cancelGeneration(bookId);
+
+        return ResponseEntity.ok()
+                .body(new MessageResponse("Batch generation cancellation requested"));
     }
 
     // DTOs

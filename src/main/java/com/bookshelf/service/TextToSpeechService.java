@@ -1,5 +1,7 @@
 package com.bookshelf.service;
 
+import com.bookshelf.dto.PageTextWithTimings;
+import com.bookshelf.dto.WordTiming;
 import com.bookshelf.exception.PdfProcessingException;
 import com.bookshelf.exception.ResourceNotFoundException;
 import com.bookshelf.model.Book;
@@ -18,6 +20,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -87,6 +91,77 @@ public class TextToSpeechService {
             log.error("Failed to generate audio for book {} page {}", bookId, pageNumber, e);
             throw new PdfProcessingException("Failed to generate audio", e);
         }
+    }
+
+    /**
+     * Get page text for read-along highlighting
+     * Returns the text and audio URL - frontend will estimate word positions
+     */
+    public PageTextWithTimings generatePageAudioWithTimings(UUID bookId, int pageNumber) {
+        try {
+            // Validate book exists
+            Book book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + bookId));
+
+            // Validate page number
+            if (pageNumber < 1 || pageNumber > book.getPageCount()) {
+                throw new IllegalArgumentException(
+                        "Invalid page number: " + pageNumber + ". Book has " + book.getPageCount() + " pages.");
+            }
+
+            // Extract page text
+            String pageText = extractPageText(book.getPdfPath(), pageNumber);
+
+            // Generate or get cached audio (ensures audio exists)
+            generateOrGetPageAudio(bookId, pageNumber);
+
+            // Build audio URL
+            String audioUrl = "/api/books/" + bookId + "/pages/" + pageNumber + "/audio";
+
+            // Generate estimated word timings based on text length
+            List<WordTiming> wordTimings = generateEstimatedWordTimings(pageText);
+
+            return PageTextWithTimings.builder()
+                    .text(pageText)
+                    .wordTimings(wordTimings)
+                    .audioUrl(audioUrl)
+                    .build();
+
+        } catch (IOException e) {
+            log.error("Failed to generate page text with timings for book {} page {}", bookId, pageNumber, e);
+            throw new PdfProcessingException("Failed to generate page text with timings", e);
+        }
+    }
+
+    /**
+     * Generate estimated word timings based on average speaking rate
+     * Assumes ~150 words per minute (2.5 words per second)
+     */
+    private List<WordTiming> generateEstimatedWordTimings(String text) {
+        List<WordTiming> timings = new ArrayList<>();
+        String[] words = text.split("\\s+");
+
+        // Estimate: 150 words/minute = 0.4 seconds per word on average
+        double secondsPerWord = 0.4;
+        double currentTime = 0.0;
+
+        for (String word : words) {
+            // Adjust timing based on word length (longer words take more time)
+            double wordDuration = secondsPerWord * (1.0 + (word.length() - 5) * 0.02);
+            wordDuration = Math.max(0.2, Math.min(wordDuration, 1.0)); // Clamp between 0.2-1.0s
+
+            WordTiming timing = WordTiming.builder()
+                    .word(word)
+                    .startTime(currentTime)
+                    .endTime(currentTime + wordDuration)
+                    .build();
+
+            timings.add(timing);
+            currentTime += wordDuration;
+        }
+
+        log.info("Generated {} estimated word timings for {} words", timings.size(), words.length);
+        return timings;
     }
 
     /**
