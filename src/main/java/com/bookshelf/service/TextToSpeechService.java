@@ -142,7 +142,7 @@ public class TextToSpeechService {
             VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
                     .setLanguageCode(languageCode)
                     .setName(voiceName)
-                    .setSsmlGender(SsmlVoiceGender.FEMALE) // Neural2-F is female
+                    .setSsmlGender(SsmlVoiceGender.MALE) // Studio-Q is male
                     .build();
 
             // Build the audio config

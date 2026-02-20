@@ -54,3 +54,4 @@ google-cloud-key.json
 *.json
 data/
 *.log
+start-server.sh

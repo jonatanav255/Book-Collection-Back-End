@@ -46,7 +46,7 @@ google:
       key: ${GOOGLE_BOOKS_API_KEY:}
   cloud:
     text-to-speech:
-      voice-name: ${TTS_VOICE_NAME:en-US-Neural2-F}
+      voice-name: ${TTS_VOICE_NAME:en-US-Studio-Q}
       language-code: ${TTS_LANGUAGE_CODE:en-US}
       speaking-rate: ${TTS_SPEAKING_RATE:1.0}
       pitch: ${TTS_PITCH:0.0}
