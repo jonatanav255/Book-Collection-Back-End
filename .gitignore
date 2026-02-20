@@ -50,3 +50,7 @@ logs/
 ### OS Files ###
 .DS_Store
 Thumbs.db
+google-cloud-key.json
+*.json
+data/
+*.log

@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +26,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
@@ -105,12 +109,28 @@ public class PdfProcessingService {
     private String generateThumbnail(PDDocument document, UUID bookId, Path thumbDir) throws IOException {
         try {
             PDFRenderer renderer = new PDFRenderer(document);
-            BufferedImage image = renderer.renderImageWithDPI(0, 150); // First page at 150 DPI
+            BufferedImage image = renderer.renderImageWithDPI(0, 300); // Render at 300 DPI for sharp thumbnails
 
             String thumbnailFileName = bookId + ".jpg";
             Path thumbnailPath = thumbDir.resolve(thumbnailFileName);
 
-            ImageIO.write(image, "JPEG", thumbnailPath.toFile());
+            // Write JPEG with high quality settings to prevent blurriness
+            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("JPEG");
+            if (!writers.hasNext()) {
+                throw new IOException("No JPEG writer found");
+            }
+
+            ImageWriter writer = writers.next();
+            ImageWriteParam writeParam = writer.getDefaultWriteParam();
+            writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            writeParam.setCompressionQuality(0.95f); // 95% quality (1.0 = max quality, 0.0 = min)
+
+            try (ImageOutputStream ios = ImageIO.createImageOutputStream(thumbnailPath.toFile())) {
+                writer.setOutput(ios);
+                writer.write(null, new javax.imageio.IIOImage(image, null, null), writeParam);
+            } finally {
+                writer.dispose();
+            }
 
             log.info("Generated thumbnail: {}", thumbnailFileName);
             return thumbnailPath.toString();

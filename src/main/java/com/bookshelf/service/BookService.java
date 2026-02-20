@@ -30,6 +30,7 @@ public class BookService {
     private final PdfProcessingService pdfProcessingService;
     private final GoogleBooksService googleBooksService;
     private final NoteService noteService;
+    private final TextToSpeechService textToSpeechService;
 
     @Transactional
     public BookResponse uploadBook(MultipartFile file) {
@@ -189,6 +190,9 @@ public class BookService {
 
         // Delete files from filesystem
         pdfProcessingService.deleteFiles(book.getPdfPath(), book.getThumbnailPath());
+
+        // Delete cached audio files
+        textToSpeechService.deleteBookAudio(id);
 
         // Delete database record
         bookRepository.delete(book);

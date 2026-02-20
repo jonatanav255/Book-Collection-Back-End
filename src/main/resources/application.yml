@@ -38,11 +38,18 @@ bookshelf:
   storage:
     pdf-directory: ${PDF_STORAGE_DIR:./data/bookshelf/pdfs}
     thumbnail-directory: ${THUMBNAIL_STORAGE_DIR:./data/bookshelf/thumbnails}
+    audio-directory: ${AUDIO_STORAGE_DIR:./data/bookshelf/audio}
 
 google:
   books:
     api:
       key: ${GOOGLE_BOOKS_API_KEY:}
+  cloud:
+    text-to-speech:
+      voice-name: ${TTS_VOICE_NAME:en-US-Neural2-F}
+      language-code: ${TTS_LANGUAGE_CODE:en-US}
+      speaking-rate: ${TTS_SPEAKING_RATE:1.0}
+      pitch: ${TTS_PITCH:0.0}
 
 logging:
   level:
