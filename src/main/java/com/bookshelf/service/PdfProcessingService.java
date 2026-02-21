@@ -6,7 +6,6 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.rendering.PDFRenderer;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +29,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Service for processing PDF files
+ * Handles PDF storage, metadata extraction, thumbnail generation, and file management
+ */
 @Service
 @Slf4j
 public class PdfProcessingService {
@@ -40,6 +43,15 @@ public class PdfProcessingService {
     @Value("${bookshelf.storage.thumbnail-directory}")
     private String thumbnailDirectory;
 
+    /**
+     * Process uploaded PDF file: save, extract metadata, generate thumbnail
+     * Uses absolute paths to avoid working directory issues with Tomcat/Spring Boot
+     *
+     * @param file Uploaded PDF multipart file
+     * @param bookId Unique book identifier
+     * @return Map containing: pdfPath, thumbnailPath, fileHash, pageCount, title, author
+     * @throws PdfProcessingException if PDF processing fails
+     */
     public Map<String, Object> processPdf(MultipartFile file, UUID bookId) {
         Map<String, Object> metadata = new HashMap<>();
 
@@ -106,24 +118,36 @@ public class PdfProcessingService {
         }
     }
 
+    /**
+     * Generate ultra-high-quality thumbnail from PDF first page
+     * Renders at 600 DPI and saves as PNG with lossless compression for maximum sharpness
+     * Higher DPI ensures crisp text and sharp images even on high-resolution displays
+     *
+     * @param document Loaded PDF document
+     * @param bookId Book identifier for filename
+     * @param thumbDir Thumbnail directory path
+     * @return Absolute path to generated thumbnail
+     * @throws IOException if thumbnail generation fails
+     */
     private String generateThumbnail(PDDocument document, UUID bookId, Path thumbDir) throws IOException {
         try {
             PDFRenderer renderer = new PDFRenderer(document);
-            BufferedImage image = renderer.renderImageWithDPI(0, 300); // Render at 300 DPI for sharp thumbnails
+            // Render at 600 DPI for ultra-sharp thumbnails (2x previous quality)
+            BufferedImage image = renderer.renderImageWithDPI(0, 600);
 
-            String thumbnailFileName = bookId + ".jpg";
+            // Use PNG format for lossless compression (no quality degradation)
+            String thumbnailFileName = bookId + ".png";
             Path thumbnailPath = thumbDir.resolve(thumbnailFileName);
 
-            // Write JPEG with high quality settings to prevent blurriness
-            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("JPEG");
+            // Write PNG with maximum quality (lossless compression)
+            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("PNG");
             if (!writers.hasNext()) {
-                throw new IOException("No JPEG writer found");
+                throw new IOException("No PNG writer found");
             }
 
             ImageWriter writer = writers.next();
             ImageWriteParam writeParam = writer.getDefaultWriteParam();
-            writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-            writeParam.setCompressionQuality(0.95f); // 95% quality (1.0 = max quality, 0.0 = min)
+            // PNG is lossless, no compression quality setting needed
 
             try (ImageOutputStream ios = ImageIO.createImageOutputStream(thumbnailPath.toFile())) {
                 writer.setOutput(ios);
@@ -141,6 +165,13 @@ public class PdfProcessingService {
         }
     }
 
+    /**
+     * Calculate SHA-256 hash of PDF file for duplicate detection
+     *
+     * @param filePath Path to PDF file
+     * @return Hexadecimal hash string
+     * @throws PdfProcessingException if hash calculation fails
+     */
     private String calculateFileHash(Path filePath) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -159,6 +190,13 @@ public class PdfProcessingService {
         }
     }
 
+    /**
+     * Delete PDF and thumbnail files from filesystem
+     * Called when a book is deleted or during duplicate cleanup
+     *
+     * @param pdfPath Path to PDF file (can be null)
+     * @param thumbnailPath Path to thumbnail file (can be null)
+     */
     public void deleteFiles(String pdfPath, String thumbnailPath) {
         try {
             if (pdfPath != null) {
@@ -174,6 +212,13 @@ public class PdfProcessingService {
         }
     }
 
+    /**
+     * Get PDF file handle for serving to client
+     *
+     * @param pdfPath Absolute path to PDF file
+     * @return File object for PDF
+     * @throws PdfProcessingException if file doesn't exist
+     */
     public File getPdfFile(String pdfPath) {
         File file = new File(pdfPath);
         if (!file.exists()) {
@@ -182,6 +227,13 @@ public class PdfProcessingService {
         return file;
     }
 
+    /**
+     * Get thumbnail file handle for serving to client
+     *
+     * @param thumbnailPath Absolute path to thumbnail file
+     * @return File object for thumbnail
+     * @throws PdfProcessingException if file doesn't exist
+     */
     public File getThumbnailFile(String thumbnailPath) {
         File file = new File(thumbnailPath);
         if (!file.exists()) {

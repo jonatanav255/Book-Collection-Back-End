@@ -134,21 +134,23 @@ public class TextToSpeechService {
     }
 
     /**
-     * Generate estimated word timings based on average speaking rate
-     * Assumes ~150 words per minute (2.5 words per second)
+     * Generate estimated word timings based on TTS speaking rate
+     * Assumes ~200 words per minute (3.33 words per second) for Studio voice
      */
     private List<WordTiming> generateEstimatedWordTimings(String text) {
         List<WordTiming> timings = new ArrayList<>();
         String[] words = text.split("\\s+");
 
-        // Estimate: 150 words/minute = 0.4 seconds per word on average
-        double secondsPerWord = 0.4;
+        // Estimate: 200 words/minute = 0.3 seconds per word on average
+        // This matches Google TTS Studio voice speed better
+        double secondsPerWord = 0.3;
         double currentTime = 0.0;
 
         for (String word : words) {
             // Adjust timing based on word length (longer words take more time)
-            double wordDuration = secondsPerWord * (1.0 + (word.length() - 5) * 0.02);
-            wordDuration = Math.max(0.2, Math.min(wordDuration, 1.0)); // Clamp between 0.2-1.0s
+            // Short words (1-3 chars): faster, Long words (10+ chars): slower
+            double wordDuration = secondsPerWord * (1.0 + (word.length() - 5) * 0.015);
+            wordDuration = Math.max(0.15, Math.min(wordDuration, 0.8)); // Clamp between 0.15-0.8s
 
             WordTiming timing = WordTiming.builder()
                     .word(word)

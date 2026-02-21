@@ -105,15 +105,24 @@ public class AudioController {
     }
 
     /**
-     * Start batch generation for all pages of a book
+     * Start batch generation for pages of a book
+     * Optional query parameters: startPage, endPage
+     * If not provided, generates all pages (1 to totalPages)
      *
      * @param bookId Book UUID
+     * @param startPage Starting page number (optional, defaults to 1)
+     * @param endPage Ending page number (optional, defaults to total pages)
      */
     @PostMapping("/{bookId}/audio/generate-all")
-    public ResponseEntity<?> startBatchGeneration(@PathVariable UUID bookId) {
-        log.info("Starting batch audio generation for book {}", bookId);
+    public ResponseEntity<?> startBatchGeneration(
+            @PathVariable UUID bookId,
+            @RequestParam(required = false) Integer startPage,
+            @RequestParam(required = false) Integer endPage) {
 
-        batchAudioGenerationService.startBatchGeneration(bookId);
+        log.info("Starting batch audio generation for book {} (pages {} to {})",
+                bookId, startPage, endPage);
+
+        batchAudioGenerationService.startBatchGeneration(bookId, startPage, endPage);
 
         return ResponseEntity.accepted()
                 .body(new MessageResponse("Batch audio generation started"));

@@ -10,6 +10,10 @@ import reactor.core.publisher.Mono;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Service for integrating with Google Books API
+ * Enriches book metadata with cover images, descriptions, and genre information
+ */
 @Service
 @Slf4j
 public class GoogleBooksService {
@@ -25,6 +29,15 @@ public class GoogleBooksService {
                 .build();
     }
 
+    /**
+     * Fetch enriched metadata from Google Books API
+     * Searches by title and author, returns first match
+     * Gracefully degrades if API fails or returns no results
+     *
+     * @param title Book title for search query
+     * @param author Book author for search query (optional)
+     * @return Map containing: title, author, description, genre, coverUrl, pageCount
+     */
     public Map<String, Object> fetchMetadata(String title, String author) {
         Map<String, Object> enrichedMetadata = new HashMap<>();
 
@@ -118,6 +131,13 @@ public class GoogleBooksService {
         return enrichedMetadata;
     }
 
+    /**
+     * Search Google Books by general query string
+     * Used by frontend book lookup feature
+     *
+     * @param query Search query string
+     * @return GoogleBooksResponse with matching volumes
+     */
     public GoogleBooksResponse searchBooks(String query) {
         try {
             String uri = "/volumes?q=" + query;

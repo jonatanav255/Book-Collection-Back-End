@@ -21,6 +21,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Service layer for book management operations
+ * Coordinates PDF processing, metadata enrichment, and CRUD operations
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -32,6 +36,23 @@ public class BookService {
     private final NoteService noteService;
     private final TextToSpeechService textToSpeechService;
 
+    /**
+     * Upload and process a new book
+     * 1. Validates PDF file
+     * 2. Extracts PDF metadata and generates thumbnail
+     * 3. Checks for duplicates using file hash
+     * 4. If duplicate exists in database: rejects upload
+     * 5. Fetches enriched metadata from Google Books API
+     * 6. Saves book to database
+     *
+     * Smart reconnection: Uses deterministic book ID from file hash
+     * This allows deleted books to reconnect to their existing audio files
+     *
+     * @param file Uploaded PDF file
+     * @return BookResponse with complete book metadata
+     * @throws IllegalArgumentException if file is empty or not a PDF
+     * @throws DuplicateBookException if identical book already exists in database
+     */
     @Transactional
     public BookResponse uploadBook(MultipartFile file) {
         // Validate file
@@ -44,22 +65,28 @@ public class BookService {
             throw new IllegalArgumentException("Only PDF files are allowed");
         }
 
-        // Generate book ID
-        UUID bookId = UUID.randomUUID();
-
-        // Process PDF and extract metadata
-        Map<String, Object> pdfMetadata = pdfProcessingService.processPdf(file, bookId);
-
-        // Check for duplicate based on file hash
+        // First pass: Calculate file hash with temporary ID to get the hash
+        UUID tempId = UUID.randomUUID();
+        Map<String, Object> pdfMetadata = pdfProcessingService.processPdf(file, tempId);
         String fileHash = (String) pdfMetadata.get("fileHash");
-        bookRepository.findByFileHash(fileHash).ifPresent(existingBook -> {
-            // Clean up the newly created files
+
+        // Generate deterministic book ID from file hash (same PDF = same ID)
+        // This ensures re-uploading the same book reconnects to existing audio files
+        UUID bookId = generateDeterministicUUID(fileHash);
+
+        // Check if this book already exists in database
+        Optional<Book> existingBook = bookRepository.findByFileHash(fileHash);
+        if (existingBook.isPresent()) {
+            // Clean up the temporary files we just created
             pdfProcessingService.deleteFiles(
                     (String) pdfMetadata.get("pdfPath"),
                     (String) pdfMetadata.get("thumbnailPath")
             );
-            throw new DuplicateBookException("A book with the same content already exists: " + existingBook.getTitle());
-        });
+            throw new DuplicateBookException("A book with the same content already exists: " + existingBook.get().getTitle());
+        }
+
+        // Rename files from temp ID to deterministic ID
+        renameBookFiles(tempId, bookId, pdfMetadata);
 
         // Fetch metadata from Google Books API
         String title = (String) pdfMetadata.getOrDefault("title", originalFilename.replaceFirst("[.][^.]+$", ""));
@@ -180,6 +207,13 @@ public class BookService {
         return mapToResponse(book);
     }
 
+    /**
+     * Delete a book from the library
+     * NOTE: Audio files are preserved to avoid wasting Google TTS costs
+     * You can manually delete audio later if needed via DELETE /api/books/{id}/audio
+     *
+     * @param id Book UUID
+     */
     @Transactional
     public void deleteBook(UUID id) {
         Book book = bookRepository.findById(id)
@@ -188,15 +222,16 @@ public class BookService {
         // Delete associated notes
         noteService.deleteNotesByBookId(id);
 
-        // Delete files from filesystem
+        // Delete files from filesystem (PDF and thumbnail only)
         pdfProcessingService.deleteFiles(book.getPdfPath(), book.getThumbnailPath());
 
-        // Delete cached audio files
-        textToSpeechService.deleteBookAudio(id);
+        // KEEP cached audio files - they cost money to generate via Google TTS
+        // Audio can be deleted manually via: DELETE /api/books/{id}/audio
+        log.info("Preserving audio files for book {} to avoid wasting TTS costs", id);
 
         // Delete database record
         bookRepository.delete(book);
-        log.info("Book deleted successfully: {}", book.getTitle());
+        log.info("Book deleted successfully: {} (audio preserved)", book.getTitle());
     }
 
     public LibraryStatsResponse getLibraryStats() {
@@ -218,6 +253,15 @@ public class BookService {
                 .build();
     }
 
+    public List<BookResponse> getFeaturedBooks(int limit) {
+        log.info("Fetching {} featured books (recently read)", limit);
+        List<Book> recentlyReadBooks = bookRepository.findRecentlyReadBooks(limit);
+
+        return recentlyReadBooks.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public String getPdfPath(UUID bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + bookId));
@@ -228,6 +272,77 @@ public class BookService {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + bookId));
         return book.getThumbnailPath();
+    }
+
+    /**
+     * Generate deterministic UUID from file hash
+     * Same PDF file will always generate the same book ID
+     * This enables reconnecting to existing audio files after re-upload
+     *
+     * @param fileHash SHA-256 hash of the PDF file
+     * @return Deterministic UUID based on the hash
+     */
+    private UUID generateDeterministicUUID(String fileHash) {
+        try {
+            // Use first 32 characters of hash to create UUID
+            // Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+            String formatted = fileHash.substring(0, 8) + "-" +
+                    fileHash.substring(8, 12) + "-" +
+                    fileHash.substring(12, 16) + "-" +
+                    fileHash.substring(16, 20) + "-" +
+                    fileHash.substring(20, 32);
+            return UUID.fromString(formatted);
+        } catch (Exception e) {
+            log.error("Failed to generate deterministic UUID from hash", e);
+            return UUID.randomUUID(); // Fallback to random
+        }
+    }
+
+    /**
+     * Rename PDF and thumbnail files from temporary ID to final deterministic ID
+     *
+     * @param tempId Temporary UUID used during initial processing
+     * @param finalId Final deterministic UUID based on file hash
+     * @param metadata Metadata map containing file paths to update
+     */
+    private void renameBookFiles(UUID tempId, UUID finalId, Map<String, Object> metadata) {
+        try {
+            String oldPdfPath = (String) metadata.get("pdfPath");
+            String oldThumbnailPath = (String) metadata.get("thumbnailPath");
+
+            // Build new paths by replacing just the filename
+            java.nio.file.Path oldPdfFile = java.nio.file.Paths.get(oldPdfPath);
+            java.nio.file.Path oldThumbnailFile = java.nio.file.Paths.get(oldThumbnailPath);
+
+            String newPdfFilename = finalId.toString() + ".pdf";
+            String newThumbnailFilename = finalId.toString() + ".png";
+
+            java.nio.file.Path newPdfFile = oldPdfFile.getParent().resolve(newPdfFilename);
+            java.nio.file.Path newThumbnailFile = oldThumbnailFile.getParent().resolve(newThumbnailFilename);
+
+            // Rename PDF file
+            java.nio.file.Files.move(
+                    oldPdfFile,
+                    newPdfFile,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            );
+
+            // Rename thumbnail file
+            java.nio.file.Files.move(
+                    oldThumbnailFile,
+                    newThumbnailFile,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            );
+
+            // Update metadata map with new paths
+            metadata.put("pdfPath", newPdfFile.toString());
+            metadata.put("thumbnailPath", newThumbnailFile.toString());
+
+            log.info("Renamed book files from {} to {}", tempId, finalId);
+        } catch (Exception e) {
+            log.error("Failed to rename book files from {} to {}", tempId, finalId, e);
+            throw new RuntimeException("Failed to rename book files: " + e.getMessage(), e);
+        }
     }
 
     private BookResponse mapToResponse(Book book) {

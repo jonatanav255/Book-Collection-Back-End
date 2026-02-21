@@ -28,10 +28,15 @@ public class BatchAudioGenerationService {
     private final Map<UUID, Boolean> cancellationMap = new ConcurrentHashMap<>();
 
     /**
-     * Start batch generation for all pages of a book
+     * Start batch generation for a page range of a book
+     * If startPage or endPage is null, defaults to full book range
+     *
+     * @param bookId Book UUID
+     * @param startPage Starting page (null = page 1)
+     * @param endPage Ending page (null = last page)
      */
     @Async
-    public void startBatchGeneration(UUID bookId) {
+    public void startBatchGeneration(UUID bookId, Integer startPage, Integer endPage) {
         log.info("Starting batch audio generation for book {}", bookId);
 
         Book book = bookRepository.findById(bookId)
@@ -39,11 +44,26 @@ public class BatchAudioGenerationService {
 
         int totalPages = book.getPageCount();
 
+        // Default to full range if not specified
+        int start = (startPage != null && startPage > 0) ? startPage : 1;
+        int end = (endPage != null && endPage > 0) ? endPage : totalPages;
+
+        // Validate page range
+        if (start < 1 || start > totalPages) {
+            throw new IllegalArgumentException("Start page must be between 1 and " + totalPages);
+        }
+        if (end < start || end > totalPages) {
+            throw new IllegalArgumentException("End page must be between " + start + " and " + totalPages);
+        }
+
+        int pageCount = end - start + 1;
+        log.info("Generating audio for pages {} to {} ({} pages total)", start, end, pageCount);
+
         // Initialize progress
         AudioGenerationProgress progress = AudioGenerationProgress.builder()
                 .status("RUNNING")
-                .currentPage(0)
-                .totalPages(totalPages)
+                .currentPage(start - 1)
+                .totalPages(end)
                 .progressPercentage(0.0)
                 .startedAt(System.currentTimeMillis())
                 .build();
@@ -52,7 +72,9 @@ public class BatchAudioGenerationService {
         cancellationMap.put(bookId, false);
 
         try {
-            for (int page = 1; page <= totalPages; page++) {
+            int pagesProcessed = 0;
+
+            for (int page = start; page <= end; page++) {
                 // Check for cancellation
                 if (Boolean.TRUE.equals(cancellationMap.get(bookId))) {
                     log.info("Batch generation cancelled for book {}", bookId);
@@ -67,13 +89,14 @@ public class BatchAudioGenerationService {
                     log.info("Page {} already cached, skipping", page);
                 } else {
                     // Generate audio for this page
-                    log.info("Generating audio for page {} of {}", page, totalPages);
+                    log.info("Generating audio for page {} (range: {} to {})", page, start, end);
                     textToSpeechService.generateOrGetPageAudio(bookId, page);
                 }
 
-                // Update progress
+                // Update progress based on range
+                pagesProcessed++;
                 progress.setCurrentPage(page);
-                progress.setProgressPercentage((page * 100.0) / totalPages);
+                progress.setProgressPercentage((pagesProcessed * 100.0) / pageCount);
                 progressMap.put(bookId, progress);
             }
 
@@ -82,7 +105,7 @@ public class BatchAudioGenerationService {
             progress.setCompletedAt(System.currentTimeMillis());
             progressMap.put(bookId, progress);
 
-            log.info("Batch audio generation completed for book {}", bookId);
+            log.info("Batch audio generation completed for book {} (pages {} to {})", bookId, start, end);
 
         } catch (Exception e) {
             log.error("Batch generation failed for book {}", bookId, e);

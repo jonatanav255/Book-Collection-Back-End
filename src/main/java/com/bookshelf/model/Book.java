@@ -8,6 +8,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Book entity representing a PDF book in the library
+ * Stores metadata, reading progress, and file locations
+ */
 @Entity
 @Table(name = "books")
 @Getter
