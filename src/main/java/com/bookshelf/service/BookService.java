@@ -316,6 +316,30 @@ public class BookService {
     }
 
     /**
+     * Regenerate all thumbnails as optimized JPEGs
+     * Converts old 600 DPI PNG thumbnails (~3-46MB each) to 150 DPI JPEG (~30-80KB each)
+     */
+    @Transactional
+    public int regenerateAllThumbnails() {
+        List<Book> allBooks = bookRepository.findAll();
+        int count = 0;
+        for (Book book : allBooks) {
+            try {
+                if (book.getPdfPath() != null) {
+                    String newPath = pdfProcessingService.regenerateThumbnail(book.getPdfPath(), book.getId());
+                    book.setThumbnailPath(newPath);
+                    bookRepository.save(book);
+                    count++;
+                }
+            } catch (Exception e) {
+                log.error("Failed to regenerate thumbnail for book {}: {}", book.getId(), e.getMessage());
+            }
+        }
+        log.info("Regenerated {} thumbnails", count);
+        return count;
+    }
+
+    /**
      * Generate deterministic UUID from file hash
      * Same PDF file will always generate the same book ID
      * This enables reconnecting to existing audio files after re-upload

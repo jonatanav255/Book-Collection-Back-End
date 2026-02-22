@@ -184,11 +184,21 @@ public class BookController {
     }
 
     /**
+     * Regenerate all thumbnails as optimized JPEGs
+     * One-time migration from 600 DPI PNG to 150 DPI JPEG
+     */
+    @PostMapping("/regenerate-thumbnails")
+    public ResponseEntity<String> regenerateThumbnails() {
+        int count = bookService.regenerateAllThumbnails();
+        return ResponseEntity.ok("Regenerated " + count + " thumbnails");
+    }
+
+    /**
      * Serve the thumbnail image for a book
      * Returns ultra-high-quality PNG thumbnail generated from first page at 600 DPI
      *
      * @param id Book UUID
-     * @return Thumbnail image as image/png
+     * @return Thumbnail image
      */
     @GetMapping("/{id}/thumbnail")
     public ResponseEntity<Resource> getThumbnail(@PathVariable UUID id) {
@@ -196,9 +206,11 @@ public class BookController {
         File thumbnailFile = pdfProcessingService.getThumbnailFile(thumbnailPath);
 
         Resource resource = new FileSystemResource(thumbnailFile);
+        MediaType mediaType = thumbnailPath.endsWith(".jpg") ? MediaType.IMAGE_JPEG : MediaType.IMAGE_PNG;
 
         return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_PNG)
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
+                .contentType(mediaType)
                 .body(resource);
     }
 }

@@ -14,6 +14,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -118,51 +119,71 @@ public class PdfProcessingService {
         }
     }
 
+    private static final int THUMBNAIL_MAX_WIDTH = 400;
+    private static final int THUMBNAIL_DPI = 150;
+    private static final float THUMBNAIL_JPEG_QUALITY = 0.85f;
+
     /**
-     * Generate ultra-high-quality thumbnail from PDF first page
-     * Renders at 600 DPI and saves as PNG with lossless compression for maximum sharpness
-     * Higher DPI ensures crisp text and sharp images even on high-resolution displays
-     *
-     * @param document Loaded PDF document
-     * @param bookId Book identifier for filename
-     * @param thumbDir Thumbnail directory path
-     * @return Absolute path to generated thumbnail
-     * @throws IOException if thumbnail generation fails
+     * Generate optimized JPEG thumbnail from PDF first page
+     * Renders at 150 DPI, resizes to max 400px wide, saves as compressed JPEG (~30-80KB each)
      */
     private String generateThumbnail(PDDocument document, UUID bookId, Path thumbDir) throws IOException {
         try {
             PDFRenderer renderer = new PDFRenderer(document);
-            // Render at 600 DPI for ultra-sharp thumbnails (2x previous quality)
-            BufferedImage image = renderer.renderImageWithDPI(0, 600);
+            BufferedImage fullImage = renderer.renderImageWithDPI(0, THUMBNAIL_DPI);
 
-            // Use PNG format for lossless compression (no quality degradation)
-            String thumbnailFileName = bookId + ".png";
+            // Resize to max width while maintaining aspect ratio
+            BufferedImage thumbnail = resizeImage(fullImage, THUMBNAIL_MAX_WIDTH);
+
+            // Save as JPEG for much smaller file sizes
+            String thumbnailFileName = bookId + ".jpg";
             Path thumbnailPath = thumbDir.resolve(thumbnailFileName);
 
-            // Write PNG with maximum quality (lossless compression)
-            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("PNG");
+            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("JPEG");
             if (!writers.hasNext()) {
-                throw new IOException("No PNG writer found");
+                throw new IOException("No JPEG writer found");
             }
 
             ImageWriter writer = writers.next();
             ImageWriteParam writeParam = writer.getDefaultWriteParam();
-            // PNG is lossless, no compression quality setting needed
+            writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            writeParam.setCompressionQuality(THUMBNAIL_JPEG_QUALITY);
 
             try (ImageOutputStream ios = ImageIO.createImageOutputStream(thumbnailPath.toFile())) {
                 writer.setOutput(ios);
-                writer.write(null, new javax.imageio.IIOImage(image, null, null), writeParam);
+                // Convert to RGB (JPEG doesn't support alpha)
+                BufferedImage rgb = new BufferedImage(thumbnail.getWidth(), thumbnail.getHeight(), BufferedImage.TYPE_INT_RGB);
+                Graphics2D g = rgb.createGraphics();
+                g.setColor(Color.WHITE);
+                g.fillRect(0, 0, rgb.getWidth(), rgb.getHeight());
+                g.drawImage(thumbnail, 0, 0, null);
+                g.dispose();
+                writer.write(null, new javax.imageio.IIOImage(rgb, null, null), writeParam);
             } finally {
                 writer.dispose();
             }
 
-            log.info("Generated thumbnail: {}", thumbnailFileName);
+            log.info("Generated thumbnail: {} ({}x{})", thumbnailFileName, thumbnail.getWidth(), thumbnail.getHeight());
             return thumbnailPath.toString();
 
         } catch (IOException e) {
             log.error("Failed to generate thumbnail", e);
             throw new PdfProcessingException("Failed to generate thumbnail", e);
         }
+    }
+
+    private BufferedImage resizeImage(BufferedImage original, int maxWidth) {
+        if (original.getWidth() <= maxWidth) return original;
+        double scale = (double) maxWidth / original.getWidth();
+        int newWidth = maxWidth;
+        int newHeight = (int) (original.getHeight() * scale);
+        BufferedImage resized = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = resized.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.drawImage(original, 0, 0, newWidth, newHeight, null);
+        g.dispose();
+        return resized;
     }
 
     /**
@@ -187,6 +208,32 @@ public class PdfProcessingService {
         } catch (NoSuchAlgorithmException | IOException e) {
             log.error("Failed to calculate file hash", e);
             throw new PdfProcessingException("Failed to calculate file hash", e);
+        }
+    }
+
+    /**
+     * Regenerate thumbnail for an existing PDF file
+     * Used to convert old 600 DPI PNG thumbnails to optimized JPEGs
+     *
+     * @param pdfPath Absolute path to PDF file
+     * @param bookId Book UUID
+     * @return New thumbnail path
+     */
+    public String regenerateThumbnail(String pdfPath, UUID bookId) {
+        try {
+            Path thumbDir = Paths.get(thumbnailDirectory).toAbsolutePath().normalize();
+            Files.createDirectories(thumbDir);
+
+            // Delete old PNG thumbnail if it exists
+            Path oldPng = thumbDir.resolve(bookId + ".png");
+            Files.deleteIfExists(oldPng);
+
+            try (PDDocument document = Loader.loadPDF(new File(pdfPath))) {
+                return generateThumbnail(document, bookId, thumbDir);
+            }
+        } catch (IOException e) {
+            log.error("Failed to regenerate thumbnail for book {}", bookId, e);
+            throw new PdfProcessingException("Failed to regenerate thumbnail", e);
         }
     }
 
