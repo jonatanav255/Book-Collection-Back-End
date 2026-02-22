@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -55,38 +56,62 @@ public class BookService {
      */
     @Transactional
     public BookResponse uploadBook(MultipartFile file) {
+        log.info("=== UPLOAD BOOK START ===");
+
         // Validate file
         if (file.isEmpty()) {
+            log.error("Upload failed: File is empty");
             throw new IllegalArgumentException("File is empty");
         }
 
         String originalFilename = file.getOriginalFilename();
+        log.info("Upload request for file: {}", originalFilename);
+
         if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".pdf")) {
+            log.error("Upload failed: Not a PDF file: {}", originalFilename);
             throw new IllegalArgumentException("Only PDF files are allowed");
         }
 
         // First pass: Calculate file hash with temporary ID to get the hash
         UUID tempId = UUID.randomUUID();
-        Map<String, Object> pdfMetadata = pdfProcessingService.processPdf(file, tempId);
-        String fileHash = (String) pdfMetadata.get("fileHash");
+        log.info("Generated temp ID: {}", tempId);
 
-        // Generate deterministic book ID from file hash (same PDF = same ID)
-        // This ensures re-uploading the same book reconnects to existing audio files
-        UUID bookId = generateDeterministicUUID(fileHash);
+        // Declare variables outside try-catch so they're accessible later
+        Map<String, Object> pdfMetadata;
+        String fileHash;
+        UUID bookId;
 
-        // Check if this book already exists in database
-        Optional<Book> existingBook = bookRepository.findByFileHash(fileHash);
-        if (existingBook.isPresent()) {
-            // Clean up the temporary files we just created
-            pdfProcessingService.deleteFiles(
-                    (String) pdfMetadata.get("pdfPath"),
-                    (String) pdfMetadata.get("thumbnailPath")
-            );
-            throw new DuplicateBookException("A book with the same content already exists: " + existingBook.get().getTitle());
+        try {
+            log.info("Processing PDF with temp ID...");
+            pdfMetadata = pdfProcessingService.processPdf(file, tempId);
+            fileHash = (String) pdfMetadata.get("fileHash");
+            log.info("PDF processed successfully. File hash: {}", fileHash);
+
+            // Generate deterministic book ID from file hash (same PDF = same ID)
+            // This ensures re-uploading the same book reconnects to existing audio files
+            bookId = generateDeterministicUUID(fileHash);
+            log.info("Generated deterministic book ID from hash: {}", bookId);
+
+            // Check if this book already exists in database
+            Optional<Book> existingBook = bookRepository.findByFileHash(fileHash);
+            if (existingBook.isPresent()) {
+                log.warn("Duplicate book found: {}", existingBook.get().getTitle());
+                // Clean up the temporary files we just created
+                pdfProcessingService.deleteFiles(
+                        (String) pdfMetadata.get("pdfPath"),
+                        (String) pdfMetadata.get("thumbnailPath")
+                );
+                throw new DuplicateBookException("A book with the same content already exists: " + existingBook.get().getTitle());
+            }
+
+            // Rename files from temp ID to deterministic ID
+            log.info("Renaming files from temp ID {} to deterministic ID {}", tempId, bookId);
+            renameBookFiles(tempId, bookId, pdfMetadata);
+            log.info("Files renamed successfully");
+        } catch (Exception e) {
+            log.error("Error during PDF processing or file renaming", e);
+            throw e;
         }
-
-        // Rename files from temp ID to deterministic ID
-        renameBookFiles(tempId, bookId, pdfMetadata);
 
         // Fetch metadata from Google Books API
         String title = (String) pdfMetadata.getOrDefault("title", originalFilename.replaceFirst("[.][^.]+$", ""));
