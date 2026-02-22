@@ -15,4 +15,5 @@ public class BookUpdateRequest {
     private String genre;
     private ReadingStatus status;
     private String coverUrl;
+    private Integer currentPage;
 }

@@ -169,6 +169,9 @@ public class BookService {
         if (request.getCoverUrl() != null) {
             book.setCoverUrl(request.getCoverUrl());
         }
+        if (request.getCurrentPage() != null) {
+            book.setCurrentPage(request.getCurrentPage());
+        }
 
         book = bookRepository.save(book);
 
@@ -191,9 +194,12 @@ public class BookService {
             if (book.getCurrentPage() > 0 && book.getStatus() == ReadingStatus.UNREAD) {
                 book.setStatus(ReadingStatus.READING);
             }
-            if (book.getCurrentPage() != null && book.getPageCount() != null &&
-                    book.getCurrentPage() >= book.getPageCount()) {
-                book.setStatus(ReadingStatus.FINISHED);
+            if (book.getCurrentPage() != null && book.getPageCount() != null) {
+                if (book.getCurrentPage() >= book.getPageCount()) {
+                    book.setStatus(ReadingStatus.FINISHED);
+                } else if (book.getStatus() == ReadingStatus.FINISHED) {
+                    book.setStatus(ReadingStatus.READING);
+                }
             }
         }
 
