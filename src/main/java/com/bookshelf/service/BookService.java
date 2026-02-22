@@ -56,47 +56,29 @@ public class BookService {
      */
     @Transactional
     public BookResponse uploadBook(MultipartFile file) {
-        log.info("=== UPLOAD BOOK START ===");
-
-        // Validate file
         if (file.isEmpty()) {
-            log.error("Upload failed: File is empty");
             throw new IllegalArgumentException("File is empty");
         }
 
         String originalFilename = file.getOriginalFilename();
-        log.info("Upload request for file: {}", originalFilename);
 
         if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".pdf")) {
-            log.error("Upload failed: Not a PDF file: {}", originalFilename);
             throw new IllegalArgumentException("Only PDF files are allowed");
         }
 
-        // First pass: Calculate file hash with temporary ID to get the hash
         UUID tempId = UUID.randomUUID();
-        log.info("Generated temp ID: {}", tempId);
 
-        // Declare variables outside try-catch so they're accessible later
         Map<String, Object> pdfMetadata;
         String fileHash;
         UUID bookId;
 
         try {
-            log.info("Processing PDF with temp ID...");
             pdfMetadata = pdfProcessingService.processPdf(file, tempId);
             fileHash = (String) pdfMetadata.get("fileHash");
-            log.info("PDF processed successfully. File hash: {}", fileHash);
-
-            // Generate deterministic book ID from file hash (same PDF = same ID)
-            // This ensures re-uploading the same book reconnects to existing audio files
             bookId = generateDeterministicUUID(fileHash);
-            log.info("Generated deterministic book ID from hash: {}", bookId);
 
-            // Check if this book already exists in database
             Optional<Book> existingBook = bookRepository.findByFileHash(fileHash);
             if (existingBook.isPresent()) {
-                log.warn("Duplicate book found: {}", existingBook.get().getTitle());
-                // Clean up the temporary files we just created
                 pdfProcessingService.deleteFiles(
                         (String) pdfMetadata.get("pdfPath"),
                         (String) pdfMetadata.get("thumbnailPath")
@@ -104,22 +86,16 @@ public class BookService {
                 throw new DuplicateBookException("A book with the same content already exists: " + existingBook.get().getTitle());
             }
 
-            // Rename files from temp ID to deterministic ID
-            log.info("Renaming files from temp ID {} to deterministic ID {}", tempId, bookId);
             renameBookFiles(tempId, bookId, pdfMetadata);
-            log.info("Files renamed successfully");
         } catch (Exception e) {
-            log.error("Error during PDF processing or file renaming", e);
             throw e;
         }
 
-        // Fetch metadata from Google Books API
         String title = (String) pdfMetadata.getOrDefault("title", originalFilename.replaceFirst("[.][^.]+$", ""));
         String author = (String) pdfMetadata.get("author");
 
         Map<String, Object> googleMetadata = googleBooksService.fetchMetadata(title, author);
 
-        // Merge metadata (Google Books takes precedence for most fields)
         Book book = Book.builder()
                 .id(bookId)
                 .title((String) googleMetadata.getOrDefault("title", title))
@@ -137,7 +113,6 @@ public class BookService {
                 .build();
 
         book = bookRepository.save(book);
-        log.info("Book uploaded successfully: {}", book.getTitle());
 
         return mapToResponse(book);
     }
@@ -196,7 +171,6 @@ public class BookService {
         }
 
         book = bookRepository.save(book);
-        log.info("Book updated successfully: {}", book.getTitle());
 
         return mapToResponse(book);
     }
@@ -227,7 +201,6 @@ public class BookService {
         book.setLastReadAt(LocalDateTime.now());
 
         book = bookRepository.save(book);
-        log.info("Progress updated for book: {}", book.getTitle());
 
         return mapToResponse(book);
     }
@@ -252,11 +225,9 @@ public class BookService {
 
         // KEEP cached audio files - they cost money to generate via Google TTS
         // Audio can be deleted manually via: DELETE /api/books/{id}/audio
-        log.info("Preserving audio files for book {} to avoid wasting TTS costs", id);
 
         // Delete database record
         bookRepository.delete(book);
-        log.info("Book deleted successfully: {} (audio preserved)", book.getTitle());
     }
 
     public LibraryStatsResponse getLibraryStats() {
@@ -279,7 +250,6 @@ public class BookService {
     }
 
     public List<BookResponse> getFeaturedBooks(int limit) {
-        log.info("Fetching {} featured books (recently read)", limit);
         List<Book> recentlyReadBooks = bookRepository.findRecentlyReadBooks(limit);
 
         return recentlyReadBooks.stream()
@@ -318,7 +288,6 @@ public class BookService {
                     fileHash.substring(20, 32);
             return UUID.fromString(formatted);
         } catch (Exception e) {
-            log.error("Failed to generate deterministic UUID from hash", e);
             return UUID.randomUUID(); // Fallback to random
         }
     }
@@ -362,10 +331,7 @@ public class BookService {
             // Update metadata map with new paths
             metadata.put("pdfPath", newPdfFile.toString());
             metadata.put("thumbnailPath", newThumbnailFile.toString());
-
-            log.info("Renamed book files from {} to {}", tempId, finalId);
         } catch (Exception e) {
-            log.error("Failed to rename book files from {} to {}", tempId, finalId, e);
             throw new RuntimeException("Failed to rename book files: " + e.getMessage(), e);
         }
     }
