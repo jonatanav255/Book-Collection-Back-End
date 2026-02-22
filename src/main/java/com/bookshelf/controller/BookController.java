@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.data.domain.Page;
+
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
@@ -51,10 +53,16 @@ public class BookController {
      * @return List of books matching the criteria
      */
     @GetMapping
-    public ResponseEntity<List<BookResponse>> getAllBooks(
+    public ResponseEntity<?> getAllBooks(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page != null && size != null) {
+            Page<BookResponse> pagedBooks = bookService.getAllBooksPaged(search, sortBy, status, page, size);
+            return ResponseEntity.ok(pagedBooks);
+        }
         List<BookResponse> books = bookService.getAllBooks(search, sortBy, status);
         return ResponseEntity.ok(books);
     }

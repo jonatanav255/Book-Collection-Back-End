@@ -12,6 +12,10 @@ import com.bookshelf.repository.BookRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -138,6 +142,42 @@ public class BookService {
         return books.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    public Page<BookResponse> getAllBooksPaged(String search, String sortBy, String status, int page, int size) {
+        Sort sort = buildSort(sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        boolean hasSearch = search != null && !search.trim().isEmpty();
+        boolean hasStatus = status != null && !status.trim().isEmpty();
+
+        Page<Book> books;
+
+        if (hasSearch && hasStatus) {
+            ReadingStatus readingStatus = ReadingStatus.valueOf(status.toUpperCase());
+            books = bookRepository.searchBooksByStatus(search.trim(), readingStatus, pageable);
+        } else if (hasSearch) {
+            books = bookRepository.searchBooks(search.trim(), pageable);
+        } else if (hasStatus) {
+            ReadingStatus readingStatus = ReadingStatus.valueOf(status.toUpperCase());
+            books = bookRepository.findByStatus(readingStatus, pageable);
+        } else {
+            books = bookRepository.findAll(pageable);
+        }
+
+        return books.map(this::mapToResponse);
+    }
+
+    private Sort buildSort(String sortBy) {
+        if (sortBy == null || sortBy.isEmpty()) {
+            return Sort.by(Sort.Direction.DESC, "dateAdded");
+        }
+        return switch (sortBy) {
+            case "title" -> Sort.by(Sort.Direction.ASC, "title");
+            case "lastRead" -> Sort.by(Sort.Direction.DESC, "lastReadAt");
+            case "progress" -> Sort.by(Sort.Direction.DESC, "progressRatio");
+            default -> Sort.by(Sort.Direction.DESC, "dateAdded");
+        };
     }
 
     public BookResponse getBookById(UUID id) {

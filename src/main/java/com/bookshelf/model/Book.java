@@ -3,6 +3,7 @@ package com.bookshelf.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
@@ -74,6 +75,9 @@ public class Book {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Formula("(COALESCE(current_page, 0) * 1.0 / NULLIF(page_count, 0))")
+    private Double progressRatio;
 
     @PrePersist
     protected void onCreate() {
