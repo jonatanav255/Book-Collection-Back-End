@@ -119,13 +119,13 @@ public class PdfProcessingService {
         }
     }
 
-    private static final int THUMBNAIL_MAX_WIDTH = 400;
-    private static final int THUMBNAIL_DPI = 150;
+    private static final int THUMBNAIL_MAX_WIDTH = 600;
+    private static final int THUMBNAIL_DPI = 300;
     private static final float THUMBNAIL_JPEG_QUALITY = 0.85f;
 
     /**
      * Generate optimized JPEG thumbnail from PDF first page
-     * Renders at 150 DPI, resizes to max 400px wide, saves as compressed JPEG (~30-80KB each)
+     * Renders at 200 DPI, resizes to max 600px wide for retina displays
      */
     private String generateThumbnail(PDDocument document, UUID bookId, Path thumbDir) throws IOException {
         try {

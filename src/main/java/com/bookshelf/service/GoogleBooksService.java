@@ -106,8 +106,10 @@ public class GoogleBooksService {
                             coverUrl = volumeInfo.getImageLinks().getSmallThumbnail();
                         }
                         if (coverUrl != null) {
-                            // Upgrade to HTTPS if needed
+                            // Upgrade to HTTPS and request higher resolution image
                             coverUrl = coverUrl.replace("http://", "https://");
+                            coverUrl = coverUrl.replace("zoom=1", "zoom=2");
+                            coverUrl = coverUrl.replace("&edge=curl", "");
                             enrichedMetadata.put("coverUrl", coverUrl);
                         }
                     }
