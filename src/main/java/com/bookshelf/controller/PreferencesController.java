@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/preferences")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class PreferencesController {
 
     private final PreferencesService preferencesService;

@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/books/lookup")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class GoogleBooksController {
 
     private final GoogleBooksService googleBooksService;

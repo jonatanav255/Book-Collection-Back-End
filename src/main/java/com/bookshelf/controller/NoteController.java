@@ -17,7 +17,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class NoteController {
 
     private final NoteService noteService;
