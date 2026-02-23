@@ -8,4 +8,4 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["sh", "-c", "echo $GOOGLE_CREDENTIALS_JSON > /app/gcloud-creds.json && export GOOGLE_APPLICATION_CREDENTIALS=/app/gcloud-creds.json && java -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "echo $GOOGLE_CREDENTIALS_JSON > /app/gcloud-creds.json && export GOOGLE_APPLICATION_CREDENTIALS=/app/gcloud-creds.json && java -Xms128m -Xmx384m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m -jar app.jar"]

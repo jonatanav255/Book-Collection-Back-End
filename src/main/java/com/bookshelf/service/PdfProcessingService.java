@@ -289,19 +289,4 @@ public class PdfProcessingService {
         return file;
     }
 
-    public String saveMigrationFile(MultipartFile file, UUID bookId, String type) {
-        try {
-            String directory = type.equals("pdf") ? pdfDirectory : thumbnailDirectory;
-            Path dirPath = Paths.get(directory).toAbsolutePath();
-            Files.createDirectories(dirPath);
-
-            String extension = type.equals("pdf") ? ".pdf" : ".jpg";
-            Path filePath = dirPath.resolve(bookId.toString() + extension);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            return filePath.toString();
-        } catch (IOException e) {
-            throw new PdfProcessingException("Failed to save migration file: " + e.getMessage());
-        }
-    }
 }
