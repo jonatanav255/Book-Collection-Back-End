@@ -184,6 +184,19 @@ public class BookController {
     }
 
     /**
+     * Migration endpoint: upload PDF and thumbnail for an existing book record
+     * Used to migrate files from local dev to production volume
+     */
+    @PostMapping("/{id}/migrate-files")
+    public ResponseEntity<String> migrateFiles(
+            @PathVariable UUID id,
+            @RequestParam("pdf") MultipartFile pdf,
+            @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail) {
+        bookService.migrateFiles(id, pdf, thumbnail);
+        return ResponseEntity.ok("Files migrated for book " + id);
+    }
+
+    /**
      * Regenerate all thumbnails as optimized JPEGs
      * One-time migration from 600 DPI PNG to 150 DPI JPEG
      */

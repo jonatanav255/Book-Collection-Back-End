@@ -406,6 +406,28 @@ public class BookService {
         }
     }
 
+    @Transactional
+    public void migrateFiles(UUID id, MultipartFile pdf, MultipartFile thumbnail) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
+
+        try {
+            // Save PDF
+            String pdfPath = pdfProcessingService.saveMigrationFile(pdf, id, "pdf");
+            book.setPdfPath(pdfPath);
+
+            // Save thumbnail if provided
+            if (thumbnail != null && !thumbnail.isEmpty()) {
+                String thumbPath = pdfProcessingService.saveMigrationFile(thumbnail, id, "thumbnail");
+                book.setThumbnailPath(thumbPath);
+            }
+
+            bookRepository.save(book);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to migrate files for book " + id, e);
+        }
+    }
+
     private BookResponse mapToResponse(Book book) {
         double progressPercentage = 0.0;
         if (book.getPageCount() != null && book.getPageCount() > 0 && book.getCurrentPage() != null) {
