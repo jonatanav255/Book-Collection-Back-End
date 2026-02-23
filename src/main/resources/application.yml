@@ -51,6 +51,10 @@ google:
       speaking-rate: ${TTS_SPEAKING_RATE:1.0}
       pitch: ${TTS_PITCH:0.0}
 
+rate-limit:
+  requests-per-minute: ${RATE_LIMIT_RPM:60}
+  cleanup-interval-minutes: ${RATE_LIMIT_CLEANUP_MINUTES:10}
+
 logging:
   level:
     com.bookshelf: INFO
