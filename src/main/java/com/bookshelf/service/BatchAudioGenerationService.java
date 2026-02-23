@@ -4,8 +4,8 @@ import com.bookshelf.dto.AudioGenerationProgress;
 import com.bookshelf.exception.ResourceNotFoundException;
 import com.bookshelf.model.Book;
 import com.bookshelf.repository.BookRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -14,12 +14,17 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-@Slf4j
-@RequiredArgsConstructor
 public class BatchAudioGenerationService {
+
+    private static final Logger log = LoggerFactory.getLogger(BatchAudioGenerationService.class);
 
     private final TextToSpeechService textToSpeechService;
     private final BookRepository bookRepository;
+
+    public BatchAudioGenerationService(TextToSpeechService textToSpeechService, BookRepository bookRepository) {
+        this.textToSpeechService = textToSpeechService;
+        this.bookRepository = bookRepository;
+    }
 
     // Store generation progress for each book
     private final Map<UUID, AudioGenerationProgress> progressMap = new ConcurrentHashMap<>();

@@ -4,8 +4,8 @@ import com.bookshelf.dto.AudioGenerationProgress;
 import com.bookshelf.dto.PageTextWithTimings;
 import com.bookshelf.service.BatchAudioGenerationService;
 import com.bookshelf.service.TextToSpeechService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -17,12 +17,18 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/books")
-@RequiredArgsConstructor
-@Slf4j
 public class AudioController {
+
+    private static final Logger log = LoggerFactory.getLogger(AudioController.class);
 
     private final TextToSpeechService textToSpeechService;
     private final BatchAudioGenerationService batchAudioGenerationService;
+
+    public AudioController(TextToSpeechService textToSpeechService,
+                           BatchAudioGenerationService batchAudioGenerationService) {
+        this.textToSpeechService = textToSpeechService;
+        this.batchAudioGenerationService = batchAudioGenerationService;
+    }
 
     /**
      * Get audio for a specific page of a book

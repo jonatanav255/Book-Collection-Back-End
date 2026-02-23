@@ -5,7 +5,6 @@ import com.bookshelf.dto.NoteResponse;
 import com.bookshelf.dto.NoteUpdateRequest;
 import com.bookshelf.service.NoteService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +15,13 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
 public class NoteController {
 
     private final NoteService noteService;
+
+    public NoteController(NoteService noteService) {
+        this.noteService = noteService;
+    }
 
     @GetMapping("/books/{bookId}/notes")
     public ResponseEntity<List<NoteResponse>> getNotesByBookId(

@@ -8,7 +8,8 @@ import com.bookshelf.model.Book;
 import com.bookshelf.repository.BookRepository;
 import com.google.cloud.texttospeech.v1.*;
 import com.google.protobuf.ByteString;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -25,8 +26,9 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@Slf4j
 public class TextToSpeechService {
+
+    private static final Logger log = LoggerFactory.getLogger(TextToSpeechService.class);
 
     private final BookRepository bookRepository;
     private final TextToSpeechClient textToSpeechClient;

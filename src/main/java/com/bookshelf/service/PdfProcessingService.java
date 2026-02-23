@@ -1,7 +1,8 @@
 package com.bookshelf.service;
 
 import com.bookshelf.exception.PdfProcessingException;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
@@ -35,8 +36,9 @@ import java.util.UUID;
  * Handles PDF storage, metadata extraction, thumbnail generation, and file management
  */
 @Service
-@Slf4j
 public class PdfProcessingService {
+
+    private static final Logger log = LoggerFactory.getLogger(PdfProcessingService.class);
 
     @Value("${bookshelf.storage.pdf-directory}")
     private String pdfDirectory;

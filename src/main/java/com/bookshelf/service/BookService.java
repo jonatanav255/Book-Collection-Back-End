@@ -10,8 +10,8 @@ import com.bookshelf.model.Book;
 import com.bookshelf.model.ReadingStatus;
 import com.bookshelf.repository.BookRepository;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,15 +31,25 @@ import java.util.stream.Collectors;
  * Coordinates PDF processing, metadata enrichment, and CRUD operations
  */
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class BookService {
+
+    private static final Logger log = LoggerFactory.getLogger(BookService.class);
 
     private final BookRepository bookRepository;
     private final PdfProcessingService pdfProcessingService;
     private final GoogleBooksService googleBooksService;
     private final NoteService noteService;
     private final TextToSpeechService textToSpeechService;
+
+    public BookService(BookRepository bookRepository, PdfProcessingService pdfProcessingService,
+                       GoogleBooksService googleBooksService, NoteService noteService,
+                       TextToSpeechService textToSpeechService) {
+        this.bookRepository = bookRepository;
+        this.pdfProcessingService = pdfProcessingService;
+        this.googleBooksService = googleBooksService;
+        this.noteService = noteService;
+        this.textToSpeechService = textToSpeechService;
+    }
 
     /**
      * Upload and process a new book

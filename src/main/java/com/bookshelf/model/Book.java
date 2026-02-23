@@ -1,7 +1,6 @@
 package com.bookshelf.model;
 
 import jakarta.persistence.*;
-import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -15,11 +14,6 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "books")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Book {
 
     @Id
@@ -42,12 +36,10 @@ public class Book {
     private Integer pageCount;
 
     @Column(name = "current_page")
-    @Builder.Default
     private Integer currentPage = 0;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
     private ReadingStatus status = ReadingStatus.UNREAD;
 
     @Column(name = "pdf_path", length = 1000, nullable = false)
@@ -78,6 +70,309 @@ public class Book {
 
     @Formula("(COALESCE(current_page, 0) * 1.0 / NULLIF(page_count, 0))")
     private Double progressRatio;
+
+    // No-arg constructor
+    public Book() {
+    }
+
+    // All-args constructor
+    public Book(UUID id, String title, String author, String description, String genre,
+                Integer pageCount, Integer currentPage, ReadingStatus status, String pdfPath,
+                String thumbnailPath, String coverUrl, String fileHash, LocalDateTime dateAdded,
+                LocalDateTime lastReadAt, LocalDateTime createdAt, LocalDateTime updatedAt,
+                Double progressRatio) {
+        this.id = id;
+        this.title = title;
+        this.author = author;
+        this.description = description;
+        this.genre = genre;
+        this.pageCount = pageCount;
+        this.currentPage = currentPage;
+        this.status = status;
+        this.pdfPath = pdfPath;
+        this.thumbnailPath = thumbnailPath;
+        this.coverUrl = coverUrl;
+        this.fileHash = fileHash;
+        this.dateAdded = dateAdded;
+        this.lastReadAt = lastReadAt;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.progressRatio = progressRatio;
+    }
+
+    // Getters and Setters
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getGenre() {
+        return genre;
+    }
+
+    public void setGenre(String genre) {
+        this.genre = genre;
+    }
+
+    public Integer getPageCount() {
+        return pageCount;
+    }
+
+    public void setPageCount(Integer pageCount) {
+        this.pageCount = pageCount;
+    }
+
+    public Integer getCurrentPage() {
+        return currentPage;
+    }
+
+    public void setCurrentPage(Integer currentPage) {
+        this.currentPage = currentPage;
+    }
+
+    public ReadingStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ReadingStatus status) {
+        this.status = status;
+    }
+
+    public String getPdfPath() {
+        return pdfPath;
+    }
+
+    public void setPdfPath(String pdfPath) {
+        this.pdfPath = pdfPath;
+    }
+
+    public String getThumbnailPath() {
+        return thumbnailPath;
+    }
+
+    public void setThumbnailPath(String thumbnailPath) {
+        this.thumbnailPath = thumbnailPath;
+    }
+
+    public String getCoverUrl() {
+        return coverUrl;
+    }
+
+    public void setCoverUrl(String coverUrl) {
+        this.coverUrl = coverUrl;
+    }
+
+    public String getFileHash() {
+        return fileHash;
+    }
+
+    public void setFileHash(String fileHash) {
+        this.fileHash = fileHash;
+    }
+
+    public LocalDateTime getDateAdded() {
+        return dateAdded;
+    }
+
+    public void setDateAdded(LocalDateTime dateAdded) {
+        this.dateAdded = dateAdded;
+    }
+
+    public LocalDateTime getLastReadAt() {
+        return lastReadAt;
+    }
+
+    public void setLastReadAt(LocalDateTime lastReadAt) {
+        this.lastReadAt = lastReadAt;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public Double getProgressRatio() {
+        return progressRatio;
+    }
+
+    public void setProgressRatio(Double progressRatio) {
+        this.progressRatio = progressRatio;
+    }
+
+    // Builder
+
+    public static BookBuilder builder() {
+        return new BookBuilder();
+    }
+
+    public static class BookBuilder {
+        private UUID id;
+        private String title;
+        private String author;
+        private String description;
+        private String genre;
+        private Integer pageCount;
+        private Integer currentPage = 0;
+        private ReadingStatus status = ReadingStatus.UNREAD;
+        private String pdfPath;
+        private String thumbnailPath;
+        private String coverUrl;
+        private String fileHash;
+        private LocalDateTime dateAdded;
+        private LocalDateTime lastReadAt;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+        private Double progressRatio;
+
+        BookBuilder() {
+        }
+
+        public BookBuilder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public BookBuilder title(String title) {
+            this.title = title;
+            return this;
+        }
+
+        public BookBuilder author(String author) {
+            this.author = author;
+            return this;
+        }
+
+        public BookBuilder description(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public BookBuilder genre(String genre) {
+            this.genre = genre;
+            return this;
+        }
+
+        public BookBuilder pageCount(Integer pageCount) {
+            this.pageCount = pageCount;
+            return this;
+        }
+
+        public BookBuilder currentPage(Integer currentPage) {
+            this.currentPage = currentPage;
+            return this;
+        }
+
+        public BookBuilder status(ReadingStatus status) {
+            this.status = status;
+            return this;
+        }
+
+        public BookBuilder pdfPath(String pdfPath) {
+            this.pdfPath = pdfPath;
+            return this;
+        }
+
+        public BookBuilder thumbnailPath(String thumbnailPath) {
+            this.thumbnailPath = thumbnailPath;
+            return this;
+        }
+
+        public BookBuilder coverUrl(String coverUrl) {
+            this.coverUrl = coverUrl;
+            return this;
+        }
+
+        public BookBuilder fileHash(String fileHash) {
+            this.fileHash = fileHash;
+            return this;
+        }
+
+        public BookBuilder dateAdded(LocalDateTime dateAdded) {
+            this.dateAdded = dateAdded;
+            return this;
+        }
+
+        public BookBuilder lastReadAt(LocalDateTime lastReadAt) {
+            this.lastReadAt = lastReadAt;
+            return this;
+        }
+
+        public BookBuilder createdAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        public BookBuilder updatedAt(LocalDateTime updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
+
+        public BookBuilder progressRatio(Double progressRatio) {
+            this.progressRatio = progressRatio;
+            return this;
+        }
+
+        public Book build() {
+            Book book = new Book();
+            book.id = this.id;
+            book.title = this.title;
+            book.author = this.author;
+            book.description = this.description;
+            book.genre = this.genre;
+            book.pageCount = this.pageCount;
+            book.currentPage = this.currentPage;
+            book.status = this.status;
+            book.pdfPath = this.pdfPath;
+            book.thumbnailPath = this.thumbnailPath;
+            book.coverUrl = this.coverUrl;
+            book.fileHash = this.fileHash;
+            book.dateAdded = this.dateAdded;
+            book.lastReadAt = this.lastReadAt;
+            book.createdAt = this.createdAt;
+            book.updatedAt = this.updatedAt;
+            book.progressRatio = this.progressRatio;
+            return book;
+        }
+    }
 
     @PrePersist
     protected void onCreate() {

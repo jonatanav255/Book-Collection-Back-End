@@ -3,16 +3,18 @@ package com.bookshelf.controller;
 import com.bookshelf.dto.PreferencesResponse;
 import com.bookshelf.dto.PreferencesUpdateRequest;
 import com.bookshelf.service.PreferencesService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/preferences")
-@RequiredArgsConstructor
 public class PreferencesController {
 
     private final PreferencesService preferencesService;
+
+    public PreferencesController(PreferencesService preferencesService) {
+        this.preferencesService = preferencesService;
+    }
 
     @GetMapping
     public ResponseEntity<PreferencesResponse> getPreferences() {

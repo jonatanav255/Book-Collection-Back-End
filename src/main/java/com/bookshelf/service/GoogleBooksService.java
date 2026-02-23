@@ -1,7 +1,8 @@
 package com.bookshelf.service;
 
 import com.bookshelf.dto.GoogleBooksResponse;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -15,8 +16,9 @@ import java.util.Map;
  * Enriches book metadata with cover images, descriptions, and genre information
  */
 @Service
-@Slf4j
 public class GoogleBooksService {
+
+    private static final Logger log = LoggerFactory.getLogger(GoogleBooksService.class);
 
     private final WebClient webClient;
 

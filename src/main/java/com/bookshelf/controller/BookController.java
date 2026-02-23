@@ -3,7 +3,6 @@ package com.bookshelf.controller;
 import com.bookshelf.dto.*;
 import com.bookshelf.service.BookService;
 import com.bookshelf.service.PdfProcessingService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -24,11 +23,15 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/books")
-@RequiredArgsConstructor
 public class BookController {
 
     private final BookService bookService;
     private final PdfProcessingService pdfProcessingService;
+
+    public BookController(BookService bookService, PdfProcessingService pdfProcessingService) {
+        this.bookService = bookService;
+        this.pdfProcessingService = pdfProcessingService;
+    }
 
     /**
      * Upload a new PDF book to the library
