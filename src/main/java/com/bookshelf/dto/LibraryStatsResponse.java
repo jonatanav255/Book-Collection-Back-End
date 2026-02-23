@@ -14,5 +14,7 @@ public class LibraryStatsResponse {
     private long unreadBooks;
     private long readingBooks;
     private long finishedBooks;
+    private long totalPages;
+    private long totalPagesRead;
     private BookResponse continueReading;
 }

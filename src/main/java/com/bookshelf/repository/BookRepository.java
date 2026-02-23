@@ -75,6 +75,12 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
      */
     long countByStatus(ReadingStatus status);
 
+    @Query("SELECT COALESCE(SUM(b.pageCount), 0) FROM Book b")
+    long sumTotalPages();
+
+    @Query("SELECT COALESCE(SUM(b.currentPage), 0) FROM Book b")
+    long sumTotalPagesRead();
+
     @Query("SELECT b FROM Book b WHERE " +
            "LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(b.author) LIKE LOWER(CONCAT('%', :search, '%'))")

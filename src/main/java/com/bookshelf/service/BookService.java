@@ -281,6 +281,8 @@ public class BookService {
         long unreadBooks = bookRepository.countByStatus(ReadingStatus.UNREAD);
         long readingBooks = bookRepository.countByStatus(ReadingStatus.READING);
         long finishedBooks = bookRepository.countByStatus(ReadingStatus.FINISHED);
+        long totalPages = bookRepository.sumTotalPages();
+        long totalPagesRead = bookRepository.sumTotalPagesRead();
 
         BookResponse continueReading = bookRepository.findMostRecentlyRead()
                 .map(this::mapToResponse)
@@ -291,6 +293,8 @@ public class BookService {
                 .unreadBooks(unreadBooks)
                 .readingBooks(readingBooks)
                 .finishedBooks(finishedBooks)
+                .totalPages(totalPages)
+                .totalPagesRead(totalPagesRead)
                 .continueReading(continueReading)
                 .build();
     }
