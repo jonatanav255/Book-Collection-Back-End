@@ -321,7 +321,7 @@ public class BookService {
 
     /**
      * Regenerate all thumbnails as optimized JPEGs
-     * Converts old 600 DPI PNG thumbnails (~3-46MB each) to 150 DPI JPEG (~30-80KB each)
+     * Re-renders at 300 DPI, resizes to max 600px wide, saves as JPEG at 0.85 quality
      */
     @Transactional
     public int regenerateAllThumbnails() {

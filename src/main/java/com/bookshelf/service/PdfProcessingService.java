@@ -125,7 +125,7 @@ public class PdfProcessingService {
 
     /**
      * Generate optimized JPEG thumbnail from PDF first page
-     * Renders at 200 DPI, resizes to max 600px wide for retina displays
+     * Renders at 300 DPI, resizes to max 600px wide for retina displays
      */
     private String generateThumbnail(PDDocument document, UUID bookId, Path thumbDir) throws IOException {
         try {
@@ -213,7 +213,7 @@ public class PdfProcessingService {
 
     /**
      * Regenerate thumbnail for an existing PDF file
-     * Used to convert old 600 DPI PNG thumbnails to optimized JPEGs
+     * Re-renders at 300 DPI and saves as optimized JPEG
      *
      * @param pdfPath Absolute path to PDF file
      * @param bookId Book UUID

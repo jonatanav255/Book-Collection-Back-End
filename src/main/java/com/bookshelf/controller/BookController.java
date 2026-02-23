@@ -149,8 +149,9 @@ public class BookController {
     }
 
     /**
-     * Delete a book and all associated data
-     * Removes PDF file, thumbnail, cached audio, and database records
+     * Delete a book and associated data
+     * Removes PDF file, thumbnail, notes, and database records
+     * NOTE: Cached audio files are preserved to avoid wasting Google TTS costs
      *
      * @param id Book UUID
      * @return 204 No Content on success
@@ -182,9 +183,9 @@ public class BookController {
                 .body(resource);
     }
 
-/**
+    /**
      * Regenerate all thumbnails as optimized JPEGs
-     * One-time migration from 600 DPI PNG to 150 DPI JPEG
+     * Re-renders at 300 DPI, resizes to max 600px wide, saves as JPEG at 0.85 quality
      */
     @PostMapping("/regenerate-thumbnails")
     public ResponseEntity<String> regenerateThumbnails() {
@@ -194,10 +195,10 @@ public class BookController {
 
     /**
      * Serve the thumbnail image for a book
-     * Returns ultra-high-quality PNG thumbnail generated from first page at 600 DPI
+     * Returns JPEG thumbnail generated from first page at 300 DPI, max 600px wide
      *
      * @param id Book UUID
-     * @return Thumbnail image
+     * @return Thumbnail image as JPEG
      */
     @GetMapping("/{id}/thumbnail")
     public ResponseEntity<Resource> getThumbnail(@PathVariable UUID id) {
