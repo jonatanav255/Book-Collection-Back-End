@@ -1,8 +1,11 @@
 package com.bookshelf.dto;
 
+import jakarta.validation.constraints.Size;
+
 import java.util.Objects;
 
 public class NoteUpdateRequest {
+    @Size(max = 10000)
     private String content;
     private String color;
     private Boolean pinned;

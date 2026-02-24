@@ -1,16 +1,28 @@
 package com.bookshelf.dto;
 
 import com.bookshelf.model.ReadingStatus;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 
 import java.util.Objects;
 
 public class BookUpdateRequest {
+    @Size(max = 500)
     private String title;
+
+    @Size(max = 500)
     private String author;
+
+    @Size(max = 5000)
     private String description;
+
+    @Size(max = 255)
     private String genre;
+
     private ReadingStatus status;
     private String coverUrl;
+
+    @Min(0)
     private Integer currentPage;
 
     public BookUpdateRequest() {

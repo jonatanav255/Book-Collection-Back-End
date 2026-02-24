@@ -3,6 +3,7 @@ package com.bookshelf.controller;
 import com.bookshelf.dto.PreferencesResponse;
 import com.bookshelf.dto.PreferencesUpdateRequest;
 import com.bookshelf.service.PreferencesService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,7 +25,7 @@ public class PreferencesController {
 
     @PutMapping
     public ResponseEntity<PreferencesResponse> updatePreferences(
-            @RequestBody PreferencesUpdateRequest request) {
+            @Valid @RequestBody PreferencesUpdateRequest request) {
         PreferencesResponse response = preferencesService.updatePreferences(request);
         return ResponseEntity.ok(response);
     }

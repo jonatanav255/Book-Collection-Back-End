@@ -6,6 +6,7 @@ import com.bookshelf.dto.NoteUpdateRequest;
 import com.bookshelf.service.NoteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,13 +37,13 @@ public class NoteController {
             @PathVariable UUID bookId,
             @Valid @RequestBody NoteCreateRequest request) {
         NoteResponse response = noteService.createNote(bookId, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/notes/{noteId}")
     public ResponseEntity<NoteResponse> updateNote(
             @PathVariable UUID noteId,
-            @RequestBody NoteUpdateRequest request) {
+            @Valid @RequestBody NoteUpdateRequest request) {
         NoteResponse response = noteService.updateNote(noteId, request);
         return ResponseEntity.ok(response);
     }

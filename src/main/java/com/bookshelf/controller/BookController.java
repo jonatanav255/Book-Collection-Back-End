@@ -3,9 +3,11 @@ package com.bookshelf.controller;
 import com.bookshelf.dto.*;
 import com.bookshelf.service.BookService;
 import com.bookshelf.service.PdfProcessingService;
+import jakarta.validation.Valid;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -43,7 +45,7 @@ public class BookController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BookResponse> uploadBook(@RequestParam("file") MultipartFile file) {
         BookResponse response = bookService.uploadBook(file);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -116,7 +118,7 @@ public class BookController {
     @PutMapping("/{id}")
     public ResponseEntity<BookResponse> updateBook(
             @PathVariable UUID id,
-            @RequestBody BookUpdateRequest request) {
+            @Valid @RequestBody BookUpdateRequest request) {
         BookResponse response = bookService.updateBook(id, request);
         return ResponseEntity.ok(response);
     }
@@ -132,7 +134,7 @@ public class BookController {
     @PutMapping("/{id}/progress")
     public ResponseEntity<BookResponse> updateProgress(
             @PathVariable UUID id,
-            @RequestBody ProgressUpdateRequest request) {
+            @Valid @RequestBody ProgressUpdateRequest request) {
         BookResponse response = bookService.updateProgress(id, request);
         return ResponseEntity.ok(response);
     }

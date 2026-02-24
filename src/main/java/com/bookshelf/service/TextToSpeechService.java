@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,6 +30,13 @@ import java.util.UUID;
 public class TextToSpeechService {
 
     private static final Logger log = LoggerFactory.getLogger(TextToSpeechService.class);
+
+    // Word timing constants for TTS estimation (~200 words/minute for Studio voice)
+    private static final double SECONDS_PER_WORD = 0.3;
+    private static final double WORD_LENGTH_FACTOR = 0.015;
+    private static final double MIN_WORD_DURATION = 0.15;
+    private static final double MAX_WORD_DURATION = 0.8;
+    private static final int MAX_TTS_TEXT_LENGTH = 5000;
 
     private final BookRepository bookRepository;
     private final TextToSpeechClient textToSpeechClient;
@@ -143,16 +151,13 @@ public class TextToSpeechService {
         List<WordTiming> timings = new ArrayList<>();
         String[] words = text.split("\\s+");
 
-        // Estimate: 200 words/minute = 0.3 seconds per word on average
-        // This matches Google TTS Studio voice speed better
-        double secondsPerWord = 0.3;
         double currentTime = 0.0;
 
         for (String word : words) {
             // Adjust timing based on word length (longer words take more time)
             // Short words (1-3 chars): faster, Long words (10+ chars): slower
-            double wordDuration = secondsPerWord * (1.0 + (word.length() - 5) * 0.015);
-            wordDuration = Math.max(0.15, Math.min(wordDuration, 0.8)); // Clamp between 0.15-0.8s
+            double wordDuration = SECONDS_PER_WORD * (1.0 + (word.length() - 5) * WORD_LENGTH_FACTOR);
+            wordDuration = Math.max(MIN_WORD_DURATION, Math.min(wordDuration, MAX_WORD_DURATION));
 
             WordTiming timing = WordTiming.builder()
                     .word(word)
@@ -192,10 +197,10 @@ public class TextToSpeechService {
                 return "This page appears to be empty or contains only images.";
             }
 
-            // Google TTS has a 5000 character limit per request
-            if (text.length() > 5000) {
-                log.warn("Page {} text exceeds 5000 chars ({}), truncating", pageNumber, text.length());
-                text = text.substring(0, 5000);
+            // Google TTS has a character limit per request
+            if (text.length() > MAX_TTS_TEXT_LENGTH) {
+                log.warn("Page {} text exceeds {} chars ({}), truncating", pageNumber, MAX_TTS_TEXT_LENGTH, text.length());
+                text = text.substring(0, MAX_TTS_TEXT_LENGTH);
             }
 
             log.info("Extracted {} characters from page {}", text.length(), pageNumber);
@@ -265,15 +270,16 @@ public class TextToSpeechService {
         try {
             Path bookAudioDir = Paths.get(audioDirectory, bookId.toString()).toAbsolutePath();
             if (Files.exists(bookAudioDir)) {
-                Files.walk(bookAudioDir)
-                        .sorted((a, b) -> -a.compareTo(b)) // Delete files before directories
-                        .forEach(path -> {
-                            try {
-                                Files.delete(path);
-                            } catch (IOException e) {
-                                log.error("Failed to delete audio file: {}", path, e);
-                            }
-                        });
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(bookAudioDir)) {
+                    for (Path path : stream) {
+                        try {
+                            Files.delete(path);
+                        } catch (IOException e) {
+                            log.error("Failed to delete audio file: {}", path, e);
+                        }
+                    }
+                }
+                Files.deleteIfExists(bookAudioDir);
                 log.info("Deleted all audio files for book {}", bookId);
             }
         } catch (IOException e) {

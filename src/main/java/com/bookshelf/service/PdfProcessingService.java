@@ -190,6 +190,7 @@ public class PdfProcessingService {
 
     /**
      * Calculate SHA-256 hash of PDF file for duplicate detection
+     * Uses streaming DigestInputStream to avoid loading entire file into memory
      *
      * @param filePath Path to PDF file
      * @return Hexadecimal hash string
@@ -198,8 +199,14 @@ public class PdfProcessingService {
     private String calculateFileHash(Path filePath) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] fileBytes = Files.readAllBytes(filePath);
-            byte[] hashBytes = digest.digest(fileBytes);
+            try (InputStream is = Files.newInputStream(filePath);
+                 java.security.DigestInputStream dis = new java.security.DigestInputStream(is, digest)) {
+                byte[] buffer = new byte[8192];
+                while (dis.read(buffer) != -1) {
+                    // reading through the stream updates the digest
+                }
+            }
+            byte[] hashBytes = digest.digest();
 
             StringBuilder sb = new StringBuilder();
             for (byte b : hashBytes) {

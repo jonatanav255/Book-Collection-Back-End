@@ -1,10 +1,17 @@
 package com.bookshelf.dto;
 
+import jakarta.validation.constraints.Size;
+
 import java.util.Objects;
 
 public class PreferencesUpdateRequest {
+    @Size(max = 50)
     private String theme;
+
+    @Size(max = 100)
     private String fontFamily;
+
+    @Size(max = 10)
     private String fontSize;
 
     public PreferencesUpdateRequest() {

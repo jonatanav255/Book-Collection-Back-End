@@ -1,10 +1,12 @@
 package com.bookshelf.dto;
 
 import com.bookshelf.model.ReadingStatus;
+import jakarta.validation.constraints.Min;
 
 import java.util.Objects;
 
 public class ProgressUpdateRequest {
+    @Min(0)
     private Integer currentPage;
     private ReadingStatus status;
 

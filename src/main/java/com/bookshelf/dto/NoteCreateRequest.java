@@ -1,15 +1,19 @@
 package com.bookshelf.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.util.Objects;
 
 public class NoteCreateRequest {
     @NotNull(message = "Page number is required")
+    @Min(1)
     private Integer pageNumber;
 
     @NotBlank(message = "Content is required")
+    @Size(max = 10000)
     private String content;
 
     private String color;
