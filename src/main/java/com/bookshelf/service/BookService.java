@@ -86,24 +86,20 @@ public class BookService {
         String fileHash;
         UUID bookId;
 
-        try {
-            pdfMetadata = pdfProcessingService.processPdf(file, tempId);
-            fileHash = (String) pdfMetadata.get("fileHash");
-            bookId = generateDeterministicUUID(fileHash);
+        pdfMetadata = pdfProcessingService.processPdf(file, tempId);
+        fileHash = (String) pdfMetadata.get("fileHash");
+        bookId = generateDeterministicUUID(fileHash);
 
-            Optional<Book> existingBook = bookRepository.findByFileHash(fileHash);
-            if (existingBook.isPresent()) {
-                pdfProcessingService.deleteFiles(
-                        (String) pdfMetadata.get("pdfPath"),
-                        (String) pdfMetadata.get("thumbnailPath")
-                );
-                throw new DuplicateBookException("A book with the same content already exists: " + existingBook.get().getTitle());
-            }
-
-            renameBookFiles(tempId, bookId, pdfMetadata);
-        } catch (Exception e) {
-            throw e;
+        Optional<Book> existingBook = bookRepository.findByFileHash(fileHash);
+        if (existingBook.isPresent()) {
+            pdfProcessingService.deleteFiles(
+                    (String) pdfMetadata.get("pdfPath"),
+                    (String) pdfMetadata.get("thumbnailPath")
+            );
+            throw new DuplicateBookException("A book with the same content already exists: " + existingBook.get().getTitle());
         }
+
+        renameBookFiles(tempId, bookId, pdfMetadata);
 
         String title = (String) pdfMetadata.getOrDefault("title", originalFilename.replaceFirst("[.][^.]+$", ""));
         String author = (String) pdfMetadata.get("author");
@@ -131,30 +127,7 @@ public class BookService {
         return mapToResponse(book);
     }
 
-    public List<BookResponse> getAllBooks(String search, String sortBy, String status) {
-        List<Book> books;
-
-        if (search != null && !search.trim().isEmpty()) {
-            books = bookRepository.searchBooks(search.trim());
-        } else if (status != null && !status.trim().isEmpty()) {
-            ReadingStatus readingStatus = ReadingStatus.valueOf(status.toUpperCase());
-            if (sortBy != null && !sortBy.isEmpty()) {
-                books = bookRepository.findByStatusSorted(readingStatus, sortBy);
-            } else {
-                books = bookRepository.findByStatus(readingStatus);
-            }
-        } else if (sortBy != null && !sortBy.isEmpty()) {
-            books = bookRepository.findAllSorted(sortBy);
-        } else {
-            books = bookRepository.findAll();
-        }
-
-        return books.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    public Page<BookResponse> getAllBooksPaged(String search, String sortBy, String status, int page, int size) {
+    public Page<BookResponse> getAllBooks(String search, String sortBy, String status, int page, int size) {
         Sort sort = buildSort(sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 

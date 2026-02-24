@@ -26,39 +26,6 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     Optional<Book> findByFileHash(String fileHash);
 
     /**
-     * Search books by title or author (case-insensitive)
-     */
-    @Query("SELECT b FROM Book b WHERE " +
-           "LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(b.author) LIKE LOWER(CONCAT('%', :search, '%'))")
-    List<Book> searchBooks(@Param("search") String search);
-
-    /**
-     * Find books by reading status
-     */
-    List<Book> findByStatus(ReadingStatus status);
-
-    /**
-     * Find all books with dynamic sorting
-     */
-    @Query("SELECT b FROM Book b ORDER BY " +
-           "CASE WHEN :sortBy = 'title' THEN b.title END ASC, " +
-           "CASE WHEN :sortBy = 'dateAdded' THEN b.dateAdded END DESC, " +
-           "CASE WHEN :sortBy = 'lastRead' THEN b.lastReadAt END DESC, " +
-           "CASE WHEN :sortBy = 'progress' THEN (CAST(b.currentPage AS double) / CAST(b.pageCount AS double)) END DESC")
-    List<Book> findAllSorted(@Param("sortBy") String sortBy);
-
-    /**
-     * Find books by status with dynamic sorting
-     */
-    @Query("SELECT b FROM Book b WHERE b.status = :status ORDER BY " +
-           "CASE WHEN :sortBy = 'title' THEN b.title END ASC, " +
-           "CASE WHEN :sortBy = 'dateAdded' THEN b.dateAdded END DESC, " +
-           "CASE WHEN :sortBy = 'lastRead' THEN b.lastReadAt END DESC, " +
-           "CASE WHEN :sortBy = 'progress' THEN (CAST(b.currentPage AS double) / CAST(b.pageCount AS double)) END DESC")
-    List<Book> findByStatusSorted(@Param("status") ReadingStatus status, @Param("sortBy") String sortBy);
-
-    /**
      * Get the most recently read book for "Continue Reading" feature
      */
     @Query("SELECT b FROM Book b WHERE b.lastReadAt IS NOT NULL ORDER BY b.lastReadAt DESC LIMIT 1")

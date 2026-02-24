@@ -155,11 +155,4 @@ public class BatchAudioGenerationService {
         cancellationMap.put(bookId, true);
     }
 
-    /**
-     * Clear progress data for a book (cleanup after completion)
-     */
-    public void clearProgress(UUID bookId) {
-        progressMap.remove(bookId);
-        cancellationMap.remove(bookId);
-    }
 }

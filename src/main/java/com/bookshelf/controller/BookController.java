@@ -47,25 +47,23 @@ public class BookController {
     }
 
     /**
-     * Get all books with optional filtering and sorting
+     * Get all books with optional filtering, sorting, and pagination
      *
      * @param search Optional search query for title or author (case-insensitive)
      * @param sortBy Optional sort field: 'title', 'dateAdded', 'lastRead', 'progress'
      * @param status Optional filter by reading status: 'UNREAD', 'READING', 'FINISHED'
-     * @return List of books matching the criteria
+     * @param page Page number (default 0)
+     * @param size Page size (default 20)
+     * @return Paginated books matching the criteria
      */
     @GetMapping
-    public ResponseEntity<?> getAllBooks(
+    public ResponseEntity<Page<BookResponse>> getAllBooks(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
-        if (page != null && size != null) {
-            Page<BookResponse> pagedBooks = bookService.getAllBooksPaged(search, sortBy, status, page, size);
-            return ResponseEntity.ok(pagedBooks);
-        }
-        List<BookResponse> books = bookService.getAllBooks(search, sortBy, status);
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Page<BookResponse> books = bookService.getAllBooks(search, sortBy, status, page, size);
         return ResponseEntity.ok(books);
     }
 
