@@ -7,6 +7,8 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 // Each IP gets a bucket that refills at a fixed rate (default 60 requests/min).
 @Component
 public class RateLimitFilter implements Filter {
+
+    private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
 
     // Maps each client IP to its own token bucket
     private final ConcurrentHashMap<String, TokenBucket> buckets = new ConcurrentHashMap<>();
@@ -59,17 +63,26 @@ public class RateLimitFilter implements Filter {
             return;
         }
 
+        // Skip rate limiting for static asset endpoints (thumbnails, PDFs, audio)
+        // These are read-only file serving routes that dominate request count during normal browsing
+        if (path.matches(".*/books/[^/]+/(thumbnail|pdf)$") || path.contains("/audio")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         // Get or create a token bucket for this IP
         String clientIp = resolveClientIp(httpRequest);
         TokenBucket bucket = buckets.computeIfAbsent(clientIp, k -> new TokenBucket(maxTokens));
 
         if (bucket.tryConsume()) {
             // Token available — allow the request through
+            log.info("Rate limit [{}] {} — tokens remaining: {}/{}", clientIp, path, bucket.getRemainingTokens(), maxTokens);
             chain.doFilter(request, response); // FilterChain.doFilter (2 params) — passes to next filter
         } else {
             // No tokens left — reject with 429 and tell client when to retry
             HttpServletResponse httpResponse = (HttpServletResponse) response;
             long waitSeconds = bucket.secondsUntilNextToken();
+            log.warn("Rate limit EXCEEDED [{}] {} — 0/{} tokens, retry in {}s", clientIp, path, maxTokens, waitSeconds);
             httpResponse.setStatus(429);
             httpResponse.setHeader("Retry-After", String.valueOf(waitSeconds));
             httpResponse.setContentType("application/json");
@@ -132,6 +145,11 @@ public class RateLimitFilter implements Filter {
             if (tokens >= 1.0) return 0;
             double deficit = 1.0 - tokens;
             return Math.max(1, (long) Math.ceil(deficit / (refillRatePerNano * 1_000_000_000L)));
+        }
+
+        synchronized int getRemainingTokens() {
+            refill();
+            return (int) tokens;
         }
 
         synchronized long getLastAccessNano() {

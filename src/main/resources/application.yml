@@ -54,7 +54,7 @@ google:
       pitch: ${TTS_PITCH:0.0}
 
 rate-limit:
-  requests-per-minute: ${RATE_LIMIT_RPM:60}
+  requests-per-minute: ${RATE_LIMIT_RPM:120}
   cleanup-interval-minutes: ${RATE_LIMIT_CLEANUP_MINUTES:10}
 
 logging:
