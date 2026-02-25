@@ -4,6 +4,7 @@ import com.bookshelf.dto.GoogleBooksResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -142,6 +143,7 @@ public class GoogleBooksService {
      * @param query Search query string
      * @return GoogleBooksResponse with matching volumes
      */
+    @Cacheable(value = "googleBooksSearch", key = "#query")
     public GoogleBooksResponse searchBooks(String query) {
         try {
             String uri = "/volumes?q=" + query;

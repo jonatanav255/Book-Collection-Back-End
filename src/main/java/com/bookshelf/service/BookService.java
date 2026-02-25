@@ -12,6 +12,9 @@ import com.bookshelf.repository.BookRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -69,6 +72,10 @@ public class BookService {
      * @throws DuplicateBookException if identical book already exists in database
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "libraryStats", allEntries = true),
+            @CacheEvict(value = "featuredBooks", allEntries = true)
+    })
     public BookResponse uploadBook(MultipartFile file) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
@@ -170,6 +177,10 @@ public class BookService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "libraryStats", allEntries = true),
+            @CacheEvict(value = "featuredBooks", allEntries = true)
+    })
     public BookResponse updateBook(UUID id, BookUpdateRequest request) {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
@@ -202,6 +213,10 @@ public class BookService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "libraryStats", allEntries = true),
+            @CacheEvict(value = "featuredBooks", allEntries = true)
+    })
     public BookResponse updateProgress(UUID id, ProgressUpdateRequest request) {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
@@ -242,6 +257,10 @@ public class BookService {
      * @param id Book UUID
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "libraryStats", allEntries = true),
+            @CacheEvict(value = "featuredBooks", allEntries = true)
+    })
     public void deleteBook(UUID id) {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
@@ -259,6 +278,7 @@ public class BookService {
         bookRepository.delete(book);
     }
 
+    @Cacheable("libraryStats")
     public LibraryStatsResponse getLibraryStats() {
         long totalBooks = bookRepository.count();
         long unreadBooks = bookRepository.countByStatus(ReadingStatus.UNREAD);
@@ -282,6 +302,7 @@ public class BookService {
                 .build();
     }
 
+    @Cacheable(value = "featuredBooks", key = "#limit")
     public List<BookResponse> getFeaturedBooks(int limit) {
         List<Book> recentlyReadBooks = bookRepository.findRecentlyReadBooks(limit);
 
