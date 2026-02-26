@@ -47,6 +47,7 @@ class BookServiceCrudTest {
                 .hasMessageContaining(id.toString());
     }
 
+    // ── updateBook: field updates
     @Test
     void updateBook_updatesTitle_whenTitleProvided() {
         UUID id = UUID.randomUUID();
@@ -173,6 +174,7 @@ class BookServiceCrudTest {
         assertThat(response.getCurrentPage()).isEqualTo(75);
     }
 
+    // ── updateBook: persistence guarantees
     @Test
     void updateBook_savesEntityExactlyOnce() {
         UUID id = UUID.randomUUID();
@@ -190,6 +192,7 @@ class BookServiceCrudTest {
 
     // ── deleteBook ────────────────────────────────────────────────────────────
 
+    // ── deleteBook: cascade behavior
     @Test
     void deleteBook_throwsResourceNotFoundException_whenBookNotFound() {
         UUID id = UUID.randomUUID();
