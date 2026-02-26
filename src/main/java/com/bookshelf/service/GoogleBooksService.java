@@ -142,7 +142,6 @@ public class GoogleBooksService {
      */
     @Cacheable(value = "googleBooksSearch", key = "#query")
     public GoogleBooksResponse searchBooks(String query) {
-        log.info("CACHE MISS — googleBooksSearch: calling Google API (query={})", query);
         try {
             String uri = "/volumes?q=" + query;
             if (apiKey != null && !apiKey.trim().isEmpty()) {
