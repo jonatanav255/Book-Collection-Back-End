@@ -54,7 +54,6 @@ public class PreferencesService {
         }
 
         preferences = preferencesRepository.save(preferences);
-        log.info("Preferences updated");
 
         return mapToResponse(preferences);
     }

@@ -46,8 +46,6 @@ public class NoteService {
                 .build();
 
         note = noteRepository.save(note);
-        log.info("Note created for book: {}", book.getTitle());
-
         return mapToResponse(note);
     }
 
@@ -86,8 +84,6 @@ public class NoteService {
         }
 
         note = noteRepository.save(note);
-        log.info("Note updated: {}", noteId);
-
         return mapToResponse(note);
     }
 
@@ -97,13 +93,11 @@ public class NoteService {
                 .orElseThrow(() -> new ResourceNotFoundException("Note not found with id: " + noteId));
 
         noteRepository.delete(note);
-        log.info("Note deleted: {}", noteId);
     }
 
     @Transactional
     public void deleteNotesByBookId(UUID bookId) {
         noteRepository.deleteByBookId(bookId);
-        log.info("All notes deleted for book: {}", bookId);
     }
 
     public String exportNotesAsMarkdown(UUID bookId) {
@@ -144,7 +138,6 @@ public class NoteService {
             }
         }
 
-        log.info("Exported {} notes for book: {}", notes.size(), book.getTitle());
         return markdown.toString();
     }
 

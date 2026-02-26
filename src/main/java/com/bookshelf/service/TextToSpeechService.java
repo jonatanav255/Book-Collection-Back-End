@@ -80,12 +80,8 @@ public class TextToSpeechService {
             // Check cache first
             Path audioFile = getAudioFilePath(bookId, pageNumber);
             if (Files.exists(audioFile)) {
-                log.info("Serving cached audio for book {} page {}", bookId, pageNumber);
                 return Files.readAllBytes(audioFile);
             }
-
-            // Not cached - generate from Google TTS
-            log.info("Generating audio for book {} page {} (not in cache)", bookId, pageNumber);
 
             String pageText = extractPageText(book.getPdfPath(), pageNumber);
             byte[] audioBytes = synthesizeSpeech(pageText);
@@ -93,7 +89,6 @@ public class TextToSpeechService {
             // Save to cache for future requests
             Files.createDirectories(audioFile.getParent());
             Files.write(audioFile, audioBytes);
-            log.info("Cached audio for book {} page {}", bookId, pageNumber);
 
             return audioBytes;
 
@@ -169,7 +164,6 @@ public class TextToSpeechService {
             currentTime += wordDuration;
         }
 
-        log.info("Generated {} estimated word timings for {} words", timings.size(), words.length);
         return timings;
     }
 
@@ -193,17 +187,14 @@ public class TextToSpeechService {
             text = text.trim();
 
             if (text.isEmpty()) {
-                log.warn("Page {} is empty or contains no extractable text", pageNumber);
                 return "This page appears to be empty or contains only images.";
             }
 
             // Google TTS has a character limit per request
             if (text.length() > MAX_TTS_TEXT_LENGTH) {
-                log.warn("Page {} text exceeds {} chars ({}), truncating", pageNumber, MAX_TTS_TEXT_LENGTH, text.length());
                 text = text.substring(0, MAX_TTS_TEXT_LENGTH);
             }
 
-            log.info("Extracted {} characters from page {}", text.length(), pageNumber);
             return text;
 
         } catch (IOException e) {
@@ -244,9 +235,6 @@ public class TextToSpeechService {
             ByteString audioContents = response.getAudioContent();
             byte[] audioBytes = audioContents.toByteArray();
 
-            log.info("Generated {} bytes of audio from {} characters of text",
-                    audioBytes.length, text.length());
-
             return audioBytes;
 
         } catch (Exception e) {
@@ -280,7 +268,6 @@ public class TextToSpeechService {
                     }
                 }
                 Files.deleteIfExists(bookAudioDir);
-                log.info("Deleted all audio files for book {}", bookId);
             }
         } catch (IOException e) {
             log.error("Failed to delete audio directory for book {}", bookId, e);

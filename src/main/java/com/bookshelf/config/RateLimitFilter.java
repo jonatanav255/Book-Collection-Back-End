@@ -76,13 +76,11 @@ public class RateLimitFilter implements Filter {
 
         if (bucket.tryConsume()) {
             // Token available — allow the request through
-            log.info("Rate limit [{}] {} — tokens remaining: {}/{}", clientIp, path, bucket.getRemainingTokens(), maxTokens);
-            chain.doFilter(request, response); // FilterChain.doFilter (2 params) — passes to next filter
+            chain.doFilter(request, response);
         } else {
             // No tokens left — reject with 429 and tell client when to retry
             HttpServletResponse httpResponse = (HttpServletResponse) response;
             long waitSeconds = bucket.secondsUntilNextToken();
-            log.warn("Rate limit EXCEEDED [{}] {} — 0/{} tokens, retry in {}s", clientIp, path, maxTokens, waitSeconds);
             httpResponse.setStatus(429);
             httpResponse.setHeader("Retry-After", String.valueOf(waitSeconds));
             httpResponse.setContentType("application/json");

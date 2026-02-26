@@ -280,6 +280,7 @@ public class BookService {
 
     @Cacheable("libraryStats")
     public LibraryStatsResponse getLibraryStats() {
+        log.info("CACHE MISS — libraryStats: fetching from database");
         long totalBooks = bookRepository.count();
         long unreadBooks = bookRepository.countByStatus(ReadingStatus.UNREAD);
         long readingBooks = bookRepository.countByStatus(ReadingStatus.READING);
@@ -304,6 +305,7 @@ public class BookService {
 
     @Cacheable(value = "featuredBooks", key = "#limit")
     public List<BookResponse> getFeaturedBooks(int limit) {
+        log.info("CACHE MISS — featuredBooks: fetching from database (limit={})", limit);
         List<Book> recentlyReadBooks = bookRepository.findRecentlyReadBooks(limit);
 
         return recentlyReadBooks.stream()
@@ -343,7 +345,6 @@ public class BookService {
                 log.error("Failed to regenerate thumbnail for book {}: {}", book.getId(), e.getMessage());
             }
         }
-        log.info("Regenerated {} thumbnails", count);
         return count;
     }
 

@@ -42,8 +42,6 @@ public class BatchAudioGenerationService {
      */
     @Async
     public void startBatchGeneration(UUID bookId, Integer startPage, Integer endPage) {
-        log.info("Starting batch audio generation for book {}", bookId);
-
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + bookId));
 
@@ -62,7 +60,6 @@ public class BatchAudioGenerationService {
         }
 
         int pageCount = end - start + 1;
-        log.info("Generating audio for pages {} to {} ({} pages total)", start, end, pageCount);
 
         // Initialize progress
         AudioGenerationProgress progress = AudioGenerationProgress.builder()
@@ -82,7 +79,6 @@ public class BatchAudioGenerationService {
             for (int page = start; page <= end; page++) {
                 // Check for cancellation
                 if (Boolean.TRUE.equals(cancellationMap.get(bookId))) {
-                    log.info("Batch generation cancelled for book {}", bookId);
                     progress.setStatus("CANCELLED");
                     progress.setCompletedAt(System.currentTimeMillis());
                     progressMap.put(bookId, progress);
@@ -90,11 +86,7 @@ public class BatchAudioGenerationService {
                 }
 
                 // Check if already cached
-                if (textToSpeechService.isAudioCached(bookId, page)) {
-                    log.info("Page {} already cached, skipping", page);
-                } else {
-                    // Generate audio for this page
-                    log.info("Generating audio for page {} (range: {} to {})", page, start, end);
+                if (!textToSpeechService.isAudioCached(bookId, page)) {
                     textToSpeechService.generateOrGetPageAudio(bookId, page);
                 }
 
@@ -109,8 +101,6 @@ public class BatchAudioGenerationService {
             progress.setStatus("COMPLETED");
             progress.setCompletedAt(System.currentTimeMillis());
             progressMap.put(bookId, progress);
-
-            log.info("Batch audio generation completed for book {} (pages {} to {})", bookId, start, end);
 
         } catch (Exception e) {
             log.error("Batch generation failed for book {}", bookId, e);
@@ -151,7 +141,6 @@ public class BatchAudioGenerationService {
      * Cancel ongoing batch generation
      */
     public void cancelGeneration(UUID bookId) {
-        log.info("Cancelling batch generation for book {}", bookId);
         cancellationMap.put(bookId, true);
     }
 

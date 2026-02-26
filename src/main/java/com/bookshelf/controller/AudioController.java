@@ -43,8 +43,6 @@ public class AudioController {
             @PathVariable UUID bookId,
             @PathVariable int pageNumber) {
 
-        log.info("Received request for audio: book={}, page={}", bookId, pageNumber);
-
         byte[] audioBytes = textToSpeechService.generateOrGetPageAudio(bookId, pageNumber);
 
         ByteArrayResource resource = new ByteArrayResource(audioBytes);
@@ -88,8 +86,6 @@ public class AudioController {
             @PathVariable UUID bookId,
             @PathVariable int pageNumber) {
 
-        log.info("Received request for page text with timings: book={}, page={}", bookId, pageNumber);
-
         PageTextWithTimings result = textToSpeechService.generatePageAudioWithTimings(bookId, pageNumber);
 
         return ResponseEntity.ok(result);
@@ -102,8 +98,6 @@ public class AudioController {
      */
     @DeleteMapping("/{bookId}/audio")
     public ResponseEntity<?> deleteBookAudio(@PathVariable UUID bookId) {
-        log.info("Deleting all audio for book {}", bookId);
-
         textToSpeechService.deleteBookAudio(bookId);
 
         return ResponseEntity.ok()
@@ -124,9 +118,6 @@ public class AudioController {
             @PathVariable UUID bookId,
             @RequestParam(required = false) Integer startPage,
             @RequestParam(required = false) Integer endPage) {
-
-        log.info("Starting batch audio generation for book {} (pages {} to {})",
-                bookId, startPage, endPage);
 
         batchAudioGenerationService.startBatchGeneration(bookId, startPage, endPage);
 
@@ -152,8 +143,6 @@ public class AudioController {
      */
     @DeleteMapping("/{bookId}/audio/generation")
     public ResponseEntity<?> cancelBatchGeneration(@PathVariable UUID bookId) {
-        log.info("Cancelling batch generation for book {}", bookId);
-
         batchAudioGenerationService.cancelGeneration(bookId);
 
         return ResponseEntity.ok()

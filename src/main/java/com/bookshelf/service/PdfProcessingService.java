@@ -110,7 +110,6 @@ public class PdfProcessingService {
                 String thumbnailPath = generateThumbnail(document, bookId, thumbDir);
                 metadata.put("thumbnailPath", thumbnailPath);
 
-                log.info("Successfully processed PDF: {}", pdfFileName);
             }
 
             return metadata;
@@ -165,7 +164,6 @@ public class PdfProcessingService {
                 writer.dispose();
             }
 
-            log.info("Generated thumbnail: {} ({}x{})", thumbnailFileName, thumbnail.getWidth(), thumbnail.getHeight());
             return thumbnailPath.toString();
 
         } catch (IOException e) {
@@ -257,11 +255,9 @@ public class PdfProcessingService {
         try {
             if (pdfPath != null) {
                 Files.deleteIfExists(Paths.get(pdfPath));
-                log.info("Deleted PDF file: {}", pdfPath);
             }
             if (thumbnailPath != null) {
                 Files.deleteIfExists(Paths.get(thumbnailPath));
-                log.info("Deleted thumbnail: {}", thumbnailPath);
             }
         } catch (IOException e) {
             log.error("Failed to delete files", e);

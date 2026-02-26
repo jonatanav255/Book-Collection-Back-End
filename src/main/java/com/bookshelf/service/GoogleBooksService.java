@@ -58,7 +58,6 @@ public class GoogleBooksService {
             }
 
             if (query.length() == 0) {
-                log.warn("No title or author provided for Google Books lookup");
                 return enrichedMetadata;
             }
 
@@ -122,10 +121,8 @@ public class GoogleBooksService {
                         enrichedMetadata.put("pageCount", volumeInfo.getPageCount());
                     }
 
-                    log.info("Successfully fetched metadata from Google Books for: {}", title);
                 }
             } else {
-                log.info("No results found from Google Books for: {}", title);
             }
 
         } catch (Exception e) {
@@ -145,6 +142,7 @@ public class GoogleBooksService {
      */
     @Cacheable(value = "googleBooksSearch", key = "#query")
     public GoogleBooksResponse searchBooks(String query) {
+        log.info("CACHE MISS — googleBooksSearch: calling Google API (query={})", query);
         try {
             String uri = "/volumes?q=" + query;
             if (apiKey != null && !apiKey.trim().isEmpty()) {
