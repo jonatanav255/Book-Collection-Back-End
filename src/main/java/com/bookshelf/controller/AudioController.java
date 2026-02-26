@@ -4,6 +4,8 @@ import com.bookshelf.dto.AudioGenerationProgress;
 import com.bookshelf.dto.PageTextWithTimings;
 import com.bookshelf.service.BatchAudioGenerationService;
 import com.bookshelf.service.TextToSpeechService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
@@ -17,6 +19,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/books")
+@Tag(name = "Audio", description = "Text-to-speech audio narration for books")
 public class AudioController {
 
     private static final Logger log = LoggerFactory.getLogger(AudioController.class);
@@ -38,6 +41,7 @@ public class AudioController {
      * @param pageNumber Page number (1-indexed)
      * @return MP3 audio file
      */
+    @Operation(summary = "Get page audio")
     @GetMapping("/{bookId}/pages/{pageNumber}/audio")
     public ResponseEntity<Resource> getPageAudio(
             @PathVariable UUID bookId,
@@ -62,6 +66,7 @@ public class AudioController {
      * @param pageNumber Page number (1-indexed)
      * @return JSON with cached status
      */
+    @Operation(summary = "Check if page audio is cached")
     @GetMapping("/{bookId}/pages/{pageNumber}/audio/status")
     public ResponseEntity<?> getAudioStatus(
             @PathVariable UUID bookId,
@@ -81,6 +86,7 @@ public class AudioController {
      * @param pageNumber Page number (1-indexed)
      * @return JSON with text, word timings, and audio URL
      */
+    @Operation(summary = "Get page text with word-level timings")
     @GetMapping("/{bookId}/pages/{pageNumber}/text-with-timings")
     public ResponseEntity<PageTextWithTimings> getPageTextWithTimings(
             @PathVariable UUID bookId,
@@ -96,6 +102,7 @@ public class AudioController {
      *
      * @param bookId Book UUID
      */
+    @Operation(summary = "Delete all cached audio for a book")
     @DeleteMapping("/{bookId}/audio")
     public ResponseEntity<?> deleteBookAudio(@PathVariable UUID bookId) {
         textToSpeechService.deleteBookAudio(bookId);
@@ -113,6 +120,7 @@ public class AudioController {
      * @param startPage Starting page number (optional, defaults to 1)
      * @param endPage Ending page number (optional, defaults to total pages)
      */
+    @Operation(summary = "Start batch audio generation")
     @PostMapping("/{bookId}/audio/generate-all")
     public ResponseEntity<?> startBatchGeneration(
             @PathVariable UUID bookId,
@@ -130,6 +138,7 @@ public class AudioController {
      *
      * @param bookId Book UUID
      */
+    @Operation(summary = "Get batch generation progress")
     @GetMapping("/{bookId}/audio/generation-status")
     public ResponseEntity<AudioGenerationProgress> getBatchGenerationStatus(@PathVariable UUID bookId) {
         AudioGenerationProgress progress = batchAudioGenerationService.getProgress(bookId);
@@ -141,6 +150,7 @@ public class AudioController {
      *
      * @param bookId Book UUID
      */
+    @Operation(summary = "Cancel batch generation")
     @DeleteMapping("/{bookId}/audio/generation")
     public ResponseEntity<?> cancelBatchGeneration(@PathVariable UUID bookId) {
         batchAudioGenerationService.cancelGeneration(bookId);

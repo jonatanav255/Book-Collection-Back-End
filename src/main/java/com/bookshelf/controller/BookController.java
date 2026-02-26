@@ -3,6 +3,8 @@ package com.bookshelf.controller;
 import com.bookshelf.dto.*;
 import com.bookshelf.service.BookService;
 import com.bookshelf.service.PdfProcessingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -25,6 +27,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/books")
+@Tag(name = "Books", description = "Book library management — upload, browse, update, and delete books")
 public class BookController {
 
     private final BookService bookService;
@@ -42,6 +45,7 @@ public class BookController {
      * @param file PDF file to upload (multipart/form-data)
      * @return BookResponse with book details including metadata
      */
+    @Operation(summary = "Upload a PDF book")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BookResponse> uploadBook(@RequestParam("file") MultipartFile file) {
         BookResponse response = bookService.uploadBook(file);
@@ -58,6 +62,7 @@ public class BookController {
      * @param size Page size (default 20)
      * @return Paginated books matching the criteria
      */
+    @Operation(summary = "List all books with filtering and pagination")
     @GetMapping
     public ResponseEntity<Page<BookResponse>> getAllBooks(
             @RequestParam(required = false) String search,
@@ -75,6 +80,7 @@ public class BookController {
      *
      * @return Library statistics with book counts and recently read book
      */
+    @Operation(summary = "Get library statistics")
     @GetMapping("/stats")
     public ResponseEntity<LibraryStatsResponse> getLibraryStats() {
         LibraryStatsResponse stats = bookService.getLibraryStats();
@@ -88,6 +94,7 @@ public class BookController {
      * @param limit Number of books to return (default: 5)
      * @return List of recently read books
      */
+    @Operation(summary = "Get featured/recently read books")
     @GetMapping("/featured")
     public ResponseEntity<List<BookResponse>> getFeaturedBooks(
             @RequestParam(defaultValue = "5") int limit) {
@@ -101,6 +108,7 @@ public class BookController {
      * @param id Book UUID
      * @return Book details
      */
+    @Operation(summary = "Get book by ID")
     @GetMapping("/{id}")
     public ResponseEntity<BookResponse> getBookById(@PathVariable UUID id) {
         BookResponse book = bookService.getBookById(id);
@@ -115,6 +123,7 @@ public class BookController {
      * @param request Updated book fields
      * @return Updated book details
      */
+    @Operation(summary = "Update book metadata")
     @PutMapping("/{id}")
     public ResponseEntity<BookResponse> updateBook(
             @PathVariable UUID id,
@@ -131,6 +140,7 @@ public class BookController {
      * @param request Current page and optional status
      * @return Updated book details with new progress
      */
+    @Operation(summary = "Update reading progress")
     @PutMapping("/{id}/progress")
     public ResponseEntity<BookResponse> updateProgress(
             @PathVariable UUID id,
@@ -145,6 +155,7 @@ public class BookController {
      * @param id Book UUID
      * @return Book details including current progress
      */
+    @Operation(summary = "Get reading progress")
     @GetMapping("/{id}/progress")
     public ResponseEntity<BookResponse> getProgress(@PathVariable UUID id) {
         BookResponse book = bookService.getBookById(id);
@@ -159,6 +170,7 @@ public class BookController {
      * @param id Book UUID
      * @return 204 No Content on success
      */
+    @Operation(summary = "Delete a book")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBook(@PathVariable UUID id) {
         bookService.deleteBook(id);
@@ -172,6 +184,7 @@ public class BookController {
      * @param id Book UUID
      * @return PDF file as application/pdf
      */
+    @Operation(summary = "Download book PDF")
     @GetMapping("/{id}/pdf")
     public ResponseEntity<Resource> getPdf(@PathVariable UUID id) {
         BookResponse book = bookService.getBookById(id);
@@ -190,6 +203,7 @@ public class BookController {
      * Regenerate all thumbnails as optimized JPEGs
      * Re-renders at 300 DPI, resizes to max 600px wide, saves as JPEG at 0.85 quality
      */
+    @Operation(summary = "Regenerate all thumbnails")
     @PostMapping("/regenerate-thumbnails")
     public ResponseEntity<String> regenerateThumbnails() {
         int count = bookService.regenerateAllThumbnails();
@@ -203,6 +217,7 @@ public class BookController {
      * @param id Book UUID
      * @return Thumbnail image as JPEG
      */
+    @Operation(summary = "Get book thumbnail image")
     @GetMapping("/{id}/thumbnail")
     public ResponseEntity<Resource> getThumbnail(@PathVariable UUID id) {
         String thumbnailPath = bookService.getThumbnailPath(id);
