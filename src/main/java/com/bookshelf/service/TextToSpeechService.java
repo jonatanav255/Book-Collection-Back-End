@@ -56,6 +56,7 @@ public class TextToSpeechService {
     @Value("${google.cloud.text-to-speech.pitch}")
     private double pitch;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public TextToSpeechService(BookRepository bookRepository) throws IOException {
         this.bookRepository = bookRepository;
         this.textToSpeechClient = TextToSpeechClient.create();

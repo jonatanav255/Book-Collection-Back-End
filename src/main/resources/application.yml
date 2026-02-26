@@ -69,3 +69,5 @@ logging:
   level:
     com.bookshelf: INFO
     org.springframework.web: INFO
+    org.apache.fontbox: "OFF"
+    org.apache.pdfbox.pdmodel.font.FileSystemFontProvider: WARN
