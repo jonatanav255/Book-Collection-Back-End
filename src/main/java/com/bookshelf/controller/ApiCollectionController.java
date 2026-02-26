@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
@@ -91,7 +92,30 @@ public class ApiCollectionController {
         env.set("data", envData);
         resources.add(env);
 
-        // --- Step 5: Convert each OpenAPI path + method into an Insomnia request ---
+        // --- Step 5: Create folders from OpenAPI tags ---
+        // Each @Tag on a controller becomes a folder in Insomnia.
+        // Requests are nested under their tag's folder via parentId.
+        // Map of tag name -> folder ID so we can look up the parent for each request.
+        Map<String, String> tagFolderIds = new HashMap<>();
+
+        JsonNode tags = openApi.get("tags");
+        if (tags != null && tags.isArray()) {
+            for (JsonNode tag : tags) {
+                String tagName = tag.get("name").asText();
+                String folderId = "fld_" + tagName.toLowerCase().replaceAll("[^a-z0-9]", "_");
+
+                ObjectNode folder = objectMapper.createObjectNode();
+                folder.put("_id", folderId);
+                folder.put("_type", "request_group");     // Insomnia's type for folders
+                folder.put("parentId", workspaceId);       // folders live under the workspace
+                folder.put("name", tagName);
+                resources.add(folder);
+
+                tagFolderIds.put(tagName, folderId);
+            }
+        }
+
+        // --- Step 6: Convert each OpenAPI path + method into an Insomnia request ---
         // OpenAPI structure: { paths: { "/api/books": { "get": {...}, "post": {...} } } }
         // We iterate the outer map (paths) then the inner map (HTTP methods per path).
         JsonNode paths = openApi.get("paths");
@@ -108,11 +132,20 @@ public class ApiCollectionController {
                     String method = methodEntry.getKey().toUpperCase(); // "get" -> "GET"
                     JsonNode operation = methodEntry.getValue();        // the operation object with summary, parameters, etc.
 
+                    // Determine which folder this request belongs to.
+                    // OpenAPI operations have a "tags" array, e.g. ["Books"].
+                    // We use the first tag to find the folder, fallback to workspace if no tag.
+                    String parentId = workspaceId;
+                    if (operation.has("tags") && operation.get("tags").isArray() && operation.get("tags").size() > 0) {
+                        String tagName = operation.get("tags").get(0).asText();
+                        parentId = tagFolderIds.getOrDefault(tagName, workspaceId);
+                    }
+
                     ObjectNode request = objectMapper.createObjectNode();
                     // Generate a unique ID per request (req_ + 8-char UUID fragment)
                     request.put("_id", "req_" + UUID.randomUUID().toString().substring(0, 8));
                     request.put("_type", "request");
-                    request.put("parentId", workspaceId); // all requests live under the workspace
+                    request.put("parentId", parentId); // nested under its tag folder
 
                     // Use the @Operation(summary) as the display name, fallback to "GET /api/books"
                     request.put("name", operation.has("summary")
