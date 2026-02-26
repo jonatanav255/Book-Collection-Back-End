@@ -206,6 +206,15 @@ class NoteServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
+    // ── deleteNotesByBookId ───────────────────────────────────────────────────
+
+    @Test
+    void deleteNotesByBookId_deletesAllNotesForBook() {
+        noteService.deleteNotesByBookId(bookId);
+
+        verify(noteRepository).deleteByBookId(bookId);
+    }
+
     // ── exportNotesAsMarkdown ─────────────────────────────────────────────────
 
     @Test

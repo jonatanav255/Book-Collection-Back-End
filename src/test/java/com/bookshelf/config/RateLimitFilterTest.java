@@ -97,6 +97,7 @@ class RateLimitFilterTest {
         filter.doFilter(lastRequest, lastResponse, chain);
 
         assertThat(lastResponse.getStatus()).isEqualTo(429);
+        assertThat(lastResponse.getHeader("Retry-After")).isNotNull();
     }
 
     // ── X-Forwarded-For header resolution ─────────────────────────────────────

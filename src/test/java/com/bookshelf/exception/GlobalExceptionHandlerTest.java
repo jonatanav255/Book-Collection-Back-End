@@ -112,6 +112,33 @@ class GlobalExceptionHandlerTest {
         assertThat(validationErrors).containsEntry("content", "Content is required");
     }
 
+    // ── DataIntegrityViolationException → 409 ────────────────────────────────
+
+    @Test
+    void handleDataIntegrity_fileHash_returns409WithDuplicateMessage() {
+        org.springframework.dao.DataIntegrityViolationException ex =
+                new org.springframework.dao.DataIntegrityViolationException(
+                        "could not execute statement; SQL [n/a]; constraint [file_hash]");
+
+        ResponseEntity<Map<String, Object>> response = handler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody().get("message"))
+                .isEqualTo("A book with the same content already exists");
+    }
+
+    @Test
+    void handleDataIntegrity_generic_returns409WithGenericMessage() {
+        org.springframework.dao.DataIntegrityViolationException ex =
+                new org.springframework.dao.DataIntegrityViolationException("constraint violation");
+
+        ResponseEntity<Map<String, Object>> response = handler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().get("message")).isEqualTo("A data conflict occurred");
+    }
+
     // ── Generic Exception → 500 ───────────────────────────────────────────────
 
     @Test

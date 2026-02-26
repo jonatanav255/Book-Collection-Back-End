@@ -120,6 +120,60 @@ class BookServiceCrudTest {
     }
 
     @Test
+    void updateBook_updatesDescription_whenDescriptionProvided() {
+        UUID id = UUID.randomUUID();
+        Book existing = Book.builder()
+                .id(id).title("Title").author("Author").pdfPath("/file.pdf")
+                .status(ReadingStatus.UNREAD).currentPage(0).pageCount(100).build();
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookUpdateRequest request = new BookUpdateRequest();
+        request.setDescription("A new description");
+
+        BookResponse response = bookService.updateBook(id, request);
+
+        assertThat(response.getDescription()).isEqualTo("A new description");
+    }
+
+    @Test
+    void updateBook_updatesGenre_whenGenreProvided() {
+        UUID id = UUID.randomUUID();
+        Book existing = Book.builder()
+                .id(id).title("Title").author("Author").pdfPath("/file.pdf")
+                .status(ReadingStatus.UNREAD).currentPage(0).pageCount(100).build();
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookUpdateRequest request = new BookUpdateRequest();
+        request.setGenre("Science Fiction");
+
+        BookResponse response = bookService.updateBook(id, request);
+
+        assertThat(response.getGenre()).isEqualTo("Science Fiction");
+    }
+
+    @Test
+    void updateBook_updatesCurrentPage_whenCurrentPageProvided() {
+        UUID id = UUID.randomUUID();
+        Book existing = Book.builder()
+                .id(id).title("Title").author("Author").pdfPath("/file.pdf")
+                .status(ReadingStatus.READING).currentPage(0).pageCount(200).build();
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookUpdateRequest request = new BookUpdateRequest();
+        request.setCurrentPage(75);
+
+        BookResponse response = bookService.updateBook(id, request);
+
+        assertThat(response.getCurrentPage()).isEqualTo(75);
+    }
+
+    @Test
     void updateBook_savesEntityExactlyOnce() {
         UUID id = UUID.randomUUID();
         Book existing = Book.builder()

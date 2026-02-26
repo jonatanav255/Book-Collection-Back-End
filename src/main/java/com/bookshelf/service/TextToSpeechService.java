@@ -61,6 +61,12 @@ public class TextToSpeechService {
         this.textToSpeechClient = TextToSpeechClient.create();
     }
 
+    /** Package-private constructor for unit tests — avoids calling TextToSpeechClient.create(). */
+    TextToSpeechService(BookRepository bookRepository, TextToSpeechClient testClient) {
+        this.bookRepository = bookRepository;
+        this.textToSpeechClient = testClient;
+    }
+
     /**
      * Generate or retrieve cached audio for a specific page of a book
      * Cache-first strategy: Check filesystem cache before calling Google TTS API
