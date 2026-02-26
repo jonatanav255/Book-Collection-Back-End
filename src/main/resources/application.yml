@@ -57,6 +57,14 @@ rate-limit:
   requests-per-minute: ${RATE_LIMIT_RPM:120}
   cleanup-interval-minutes: ${RATE_LIMIT_CLEANUP_MINUTES:10}
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+
 logging:
   level:
     com.bookshelf: INFO
