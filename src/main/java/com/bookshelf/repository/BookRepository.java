@@ -60,6 +60,14 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     @Query("UPDATE Book b SET b.status = :status, b.updatedAt = CURRENT_TIMESTAMP WHERE b.id IN :ids")
     int updateStatusByIdIn(@Param("ids") List<UUID> ids, @Param("status") ReadingStatus status);
 
+    @Modifying
+    @Query("UPDATE Book b SET b.status = :status, b.currentPage = 0, b.updatedAt = CURRENT_TIMESTAMP WHERE b.id IN :ids")
+    int updateStatusAndResetPageByIdIn(@Param("ids") List<UUID> ids, @Param("status") ReadingStatus status);
+
+    @Modifying
+    @Query("UPDATE Book b SET b.status = :status, b.currentPage = b.pageCount, b.updatedAt = CURRENT_TIMESTAMP WHERE b.id IN :ids AND b.pageCount > 0")
+    int updateStatusAndFinishPageByIdIn(@Param("ids") List<UUID> ids, @Param("status") ReadingStatus status);
+
     @Query("SELECT b FROM Book b WHERE b.status = :status AND (" +
            "LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(b.author) LIKE LOWER(CONCAT('%', :search, '%')))")

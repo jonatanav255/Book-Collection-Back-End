@@ -99,13 +99,28 @@ class BookServiceBulkTest {
         UUID id1 = UUID.randomUUID();
         UUID id2 = UUID.randomUUID();
 
-        when(bookRepository.updateStatusByIdIn(List.of(id1, id2), ReadingStatus.FINISHED)).thenReturn(2);
+        when(bookRepository.updateStatusAndFinishPageByIdIn(List.of(id1, id2), ReadingStatus.FINISHED)).thenReturn(2);
 
         BulkOperationResponse response = bookService.updateBooksStatus(List.of(id1, id2), ReadingStatus.FINISHED);
 
         assertThat(response.getSuccessCount()).isEqualTo(2);
         assertThat(response.getFailureCount()).isZero();
         assertThat(response.getFailedIds()).isEmpty();
+    }
+
+    @Test
+    void updateBooksStatus_unread_resetsCurrentPage() {
+        UUID id1 = UUID.randomUUID();
+        UUID id2 = UUID.randomUUID();
+
+        when(bookRepository.updateStatusAndResetPageByIdIn(List.of(id1, id2), ReadingStatus.UNREAD)).thenReturn(2);
+
+        BulkOperationResponse response = bookService.updateBooksStatus(List.of(id1, id2), ReadingStatus.UNREAD);
+
+        assertThat(response.getSuccessCount()).isEqualTo(2);
+        assertThat(response.getFailureCount()).isZero();
+        assertThat(response.getFailedIds()).isEmpty();
+        verify(bookRepository).updateStatusAndResetPageByIdIn(List.of(id1, id2), ReadingStatus.UNREAD);
     }
 
     @Test

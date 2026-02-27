@@ -309,7 +309,14 @@ public class BookService {
             @CacheEvict(value = "featuredBooks", allEntries = true)
     })
     public BulkOperationResponse updateBooksStatus(List<UUID> ids, ReadingStatus status) {
-        int updatedCount = bookRepository.updateStatusByIdIn(ids, status);
+        int updatedCount;
+        if (status == ReadingStatus.UNREAD) {
+            updatedCount = bookRepository.updateStatusAndResetPageByIdIn(ids, status);
+        } else if (status == ReadingStatus.FINISHED) {
+            updatedCount = bookRepository.updateStatusAndFinishPageByIdIn(ids, status);
+        } else {
+            updatedCount = bookRepository.updateStatusByIdIn(ids, status);
+        }
         int notFoundCount = ids.size() - updatedCount;
 
         List<UUID> failedIds = new ArrayList<>();
