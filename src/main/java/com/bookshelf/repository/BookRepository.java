@@ -5,6 +5,7 @@ import com.bookshelf.model.ReadingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -54,6 +55,10 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     Page<Book> searchBooks(@Param("search") String search, Pageable pageable);
 
     Page<Book> findByStatus(ReadingStatus status, Pageable pageable);
+
+    @Modifying
+    @Query("UPDATE Book b SET b.status = :status, b.updatedAt = CURRENT_TIMESTAMP WHERE b.id IN :ids")
+    int updateStatusByIdIn(@Param("ids") List<UUID> ids, @Param("status") ReadingStatus status);
 
     @Query("SELECT b FROM Book b WHERE b.status = :status AND (" +
            "LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +

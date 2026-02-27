@@ -103,6 +103,35 @@ public class BookController {
     }
 
     /**
+     * Delete multiple books at once
+     * Removes PDF files, thumbnails, notes, and database records for each book
+     *
+     * @param request List of book UUIDs to delete (max 100)
+     * @return Bulk operation result with success/failure counts
+     */
+    @Operation(summary = "Bulk delete books")
+    @DeleteMapping("/bulk")
+    public ResponseEntity<BulkOperationResponse> deleteBooks(
+            @Valid @RequestBody BulkDeleteRequest request) {
+        BulkOperationResponse response = bookService.deleteBooks(request.getIds());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Update reading status for multiple books at once
+     *
+     * @param request List of book UUIDs and target status (max 100)
+     * @return Bulk operation result with success/failure counts
+     */
+    @Operation(summary = "Bulk update book status")
+    @PutMapping("/bulk/status")
+    public ResponseEntity<BulkOperationResponse> updateBooksStatus(
+            @Valid @RequestBody BulkStatusUpdateRequest request) {
+        BulkOperationResponse response = bookService.updateBooksStatus(request.getIds(), request.getStatus());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Get a specific book by ID
      *
      * @param id Book UUID

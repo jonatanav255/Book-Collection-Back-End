@@ -22,7 +22,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.bookshelf.dto.BulkOperationResponse;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -276,6 +279,49 @@ public class BookService {
 
         // Delete database record
         bookRepository.delete(book);
+    }
+
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "libraryStats", allEntries = true),
+            @CacheEvict(value = "featuredBooks", allEntries = true)
+    })
+    public BulkOperationResponse deleteBooks(List<UUID> ids) {
+        int successCount = 0;
+        List<UUID> failedIds = new ArrayList<>();
+
+        for (UUID id : ids) {
+            try {
+                deleteBook(id);
+                successCount++;
+            } catch (ResourceNotFoundException e) {
+                log.warn("Bulk delete: book not found with id: {}", id);
+                failedIds.add(id);
+            }
+        }
+
+        return new BulkOperationResponse(successCount, failedIds.size(), failedIds);
+    }
+
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "libraryStats", allEntries = true),
+            @CacheEvict(value = "featuredBooks", allEntries = true)
+    })
+    public BulkOperationResponse updateBooksStatus(List<UUID> ids, ReadingStatus status) {
+        int updatedCount = bookRepository.updateStatusByIdIn(ids, status);
+        int notFoundCount = ids.size() - updatedCount;
+
+        List<UUID> failedIds = new ArrayList<>();
+        if (notFoundCount > 0) {
+            for (UUID id : ids) {
+                if (!bookRepository.existsById(id)) {
+                    failedIds.add(id);
+                }
+            }
+        }
+
+        return new BulkOperationResponse(updatedCount, failedIds.size(), failedIds);
     }
 
     @Cacheable("libraryStats")
