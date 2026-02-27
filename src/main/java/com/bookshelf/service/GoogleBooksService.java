@@ -122,7 +122,6 @@ public class GoogleBooksService {
                     }
 
                 }
-            } else {
             }
 
         } catch (Exception e) {

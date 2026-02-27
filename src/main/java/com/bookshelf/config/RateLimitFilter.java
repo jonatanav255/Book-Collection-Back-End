@@ -145,11 +145,6 @@ public class RateLimitFilter implements Filter {
             return Math.max(1, (long) Math.ceil(deficit / (refillRatePerNano * 1_000_000_000L)));
         }
 
-        synchronized int getRemainingTokens() {
-            refill();
-            return (int) tokens;
-        }
-
         synchronized long getLastAccessNano() {
             return lastAccessNano;
         }
