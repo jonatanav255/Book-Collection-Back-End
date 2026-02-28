@@ -37,6 +37,18 @@ server:
 bookshelf:
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
+
+  # JWT authentication configuration
+  # - secret: Base64-encoded signing key for HMAC-SHA256. MUST be overridden in production
+  #   via the JWT_SECRET environment variable. The default below is for local development only.
+  # - access-token-expiration: How long access tokens are valid (in milliseconds).
+  #   Default: 900000ms = 15 minutes.
+  # - refresh-token-expiration: How long refresh tokens are valid (in milliseconds).
+  #   Default: 604800000ms = 7 days.
+  jwt:
+    secret: ${JWT_SECRET:dGhpcy1pcy1hLWRldi1vbmx5LWp3dC1zZWNyZXQta2V5LXRoYXQtaXMtbG9uZy1lbm91Z2gtZm9yLWhzMjU2}
+    access-token-expiration: ${JWT_ACCESS_EXPIRATION:900000}
+    refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
   storage:
     pdf-directory: ${PDF_STORAGE_DIR:./data/bookshelf/pdfs}
     thumbnail-directory: ${THUMBNAIL_STORAGE_DIR:./data/bookshelf/thumbnails}
