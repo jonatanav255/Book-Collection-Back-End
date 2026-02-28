@@ -97,10 +97,47 @@
             <version>2.30.0</version>
         </dependency>
 
+        <!-- Spring Security — provides the security filter chain, authentication framework,
+             and password encoding (BCrypt). Added in Phase 1 with a temporary "permit all"
+             config to avoid breaking existing endpoints. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- JWT (jjwt) — used to generate and validate JSON Web Tokens for stateless auth.
+             jjwt-api: compile-time API for token creation/parsing
+             jjwt-impl: runtime implementation of the JWT engine
+             jjwt-jackson: runtime JSON serialization for JWT claims using Jackson -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.3</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.3</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.3</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Spring Security Test — provides MockMvc security support, @WithMockUser,
+             and utilities for testing secured endpoints in integration tests -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
