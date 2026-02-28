@@ -202,12 +202,29 @@ public class BookService {
         }
         if (request.getStatus() != null) {
             book.setStatus(request.getStatus());
+            // Enforce status-page consistency when status is explicitly set
+            if (request.getCurrentPage() == null) {
+                if (request.getStatus() == ReadingStatus.UNREAD) {
+                    book.setCurrentPage(0);
+                } else if (request.getStatus() == ReadingStatus.FINISHED
+                        && book.getPageCount() != null && book.getPageCount() > 0) {
+                    book.setCurrentPage(book.getPageCount());
+                }
+            }
         }
         if (request.getCoverUrl() != null) {
             book.setCoverUrl(request.getCoverUrl());
         }
         if (request.getCurrentPage() != null) {
-            book.setCurrentPage(request.getCurrentPage());
+            // Clamp currentPage to valid range
+            int clampedPage = request.getCurrentPage();
+            if (book.getPageCount() != null && clampedPage > book.getPageCount()) {
+                clampedPage = book.getPageCount();
+            }
+            if (clampedPage < 0) {
+                clampedPage = 0;
+            }
+            book.setCurrentPage(clampedPage);
         }
 
         book = bookRepository.save(book);
@@ -225,7 +242,15 @@ public class BookService {
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
 
         if (request.getCurrentPage() != null) {
-            book.setCurrentPage(request.getCurrentPage());
+            // Clamp currentPage to valid range [0, pageCount]
+            int clampedPage = request.getCurrentPage();
+            if (book.getPageCount() != null && clampedPage > book.getPageCount()) {
+                clampedPage = book.getPageCount();
+            }
+            if (clampedPage < 0) {
+                clampedPage = 0;
+            }
+            book.setCurrentPage(clampedPage);
         }
 
         if (request.getStatus() != null) {

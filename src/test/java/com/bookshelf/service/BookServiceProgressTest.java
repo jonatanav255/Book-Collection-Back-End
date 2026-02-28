@@ -184,4 +184,30 @@ class BookServiceProgressTest {
 
         assertThat(response.getProgressPercentage()).isEqualTo(25.0);
     }
+
+    // ── currentPage clamping ────────────────────────────────────────────────
+
+    @Test
+    void updateProgress_clampsCurrentPageToPageCount_whenExceedsTotal() {
+        Book book = buildBook(ReadingStatus.READING, 50, 100);
+        when(bookRepository.findById(bookId)).thenReturn(Optional.of(book));
+        mockSave();
+
+        BookResponse response = bookService.updateProgress(bookId, new ProgressUpdateRequest(999, null));
+
+        assertThat(response.getCurrentPage()).isEqualTo(100);
+        assertThat(response.getStatus()).isEqualTo(ReadingStatus.FINISHED);
+        assertThat(response.getProgressPercentage()).isEqualTo(100.0);
+    }
+
+    @Test
+    void updateProgress_clampsNegativeCurrentPageToZero() {
+        Book book = buildBook(ReadingStatus.READING, 50, 100);
+        when(bookRepository.findById(bookId)).thenReturn(Optional.of(book));
+        mockSave();
+
+        BookResponse response = bookService.updateProgress(bookId, new ProgressUpdateRequest(-5, null));
+
+        assertThat(response.getCurrentPage()).isEqualTo(0);
+    }
 }

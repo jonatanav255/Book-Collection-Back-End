@@ -190,6 +190,86 @@ class BookServiceCrudTest {
         verify(bookRepository, times(1)).save(any(Book.class));
     }
 
+    // ── updateBook: status-page consistency ───────────────────────────────────
+
+    @Test
+    void updateBook_resetsCurrentPageToZero_whenStatusSetToUnreadWithoutExplicitPage() {
+        UUID id = UUID.randomUUID();
+        Book existing = Book.builder()
+                .id(id).title("Title").author("Author").pdfPath("/file.pdf")
+                .status(ReadingStatus.READING).currentPage(25).pageCount(50).build();
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookUpdateRequest request = new BookUpdateRequest();
+        request.setStatus(ReadingStatus.UNREAD);
+
+        BookResponse response = bookService.updateBook(id, request);
+
+        assertThat(response.getStatus()).isEqualTo(ReadingStatus.UNREAD);
+        assertThat(response.getCurrentPage()).isEqualTo(0);
+        assertThat(response.getProgressPercentage()).isEqualTo(0.0);
+    }
+
+    @Test
+    void updateBook_setsCurrentPageToPageCount_whenStatusSetToFinishedWithoutExplicitPage() {
+        UUID id = UUID.randomUUID();
+        Book existing = Book.builder()
+                .id(id).title("Title").author("Author").pdfPath("/file.pdf")
+                .status(ReadingStatus.READING).currentPage(25).pageCount(50).build();
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookUpdateRequest request = new BookUpdateRequest();
+        request.setStatus(ReadingStatus.FINISHED);
+
+        BookResponse response = bookService.updateBook(id, request);
+
+        assertThat(response.getStatus()).isEqualTo(ReadingStatus.FINISHED);
+        assertThat(response.getCurrentPage()).isEqualTo(50);
+        assertThat(response.getProgressPercentage()).isEqualTo(100.0);
+    }
+
+    @Test
+    void updateBook_clampsCurrentPageToPageCount_whenExceedsTotal() {
+        UUID id = UUID.randomUUID();
+        Book existing = Book.builder()
+                .id(id).title("Title").author("Author").pdfPath("/file.pdf")
+                .status(ReadingStatus.READING).currentPage(25).pageCount(50).build();
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookUpdateRequest request = new BookUpdateRequest();
+        request.setCurrentPage(999);
+
+        BookResponse response = bookService.updateBook(id, request);
+
+        assertThat(response.getCurrentPage()).isEqualTo(50);
+    }
+
+    @Test
+    void updateBook_respectsExplicitCurrentPage_whenStatusAndPageBothProvided() {
+        UUID id = UUID.randomUUID();
+        Book existing = Book.builder()
+                .id(id).title("Title").author("Author").pdfPath("/file.pdf")
+                .status(ReadingStatus.READING).currentPage(25).pageCount(50).build();
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(bookRepository.save(any(Book.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookUpdateRequest request = new BookUpdateRequest();
+        request.setStatus(ReadingStatus.UNREAD);
+        request.setCurrentPage(0);
+
+        BookResponse response = bookService.updateBook(id, request);
+
+        assertThat(response.getStatus()).isEqualTo(ReadingStatus.UNREAD);
+        assertThat(response.getCurrentPage()).isEqualTo(0);
+    }
+
     // ── deleteBook ────────────────────────────────────────────────────────────
 
     // ── deleteBook: cascade behavior
