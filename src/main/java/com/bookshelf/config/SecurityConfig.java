@@ -4,23 +4,24 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Spring Security configuration.
  *
- * PHASE 1 (current): Temporary "permit all" configuration.
- * Adding spring-boot-starter-security without any SecurityFilterChain bean
- * would auto-secure every endpoint with HTTP Basic auth and a random password,
- * which would break all existing functionality. This permit-all config acts as
- * a bridge — it disables CSRF (since this is a stateless REST API) and allows
- * all requests through without authentication.
+ * PHASES 1-3 (current): Temporary "permit all" configuration with PasswordEncoder.
+ * The security filter chain still allows all requests through — no authentication
+ * is enforced yet. The PasswordEncoder bean was added in Phase 3 so AuthService
+ * can hash passwords during registration and verify them during login.
  *
- * This class will be progressively updated in later phases:
- * - Phase 3: Add PasswordEncoder bean (BCrypt)
- * - Phase 4: Add JWT filter, enforce authentication on all non-auth endpoints,
- *            configure stateless sessions, add CORS integration, and set up
- *            a custom JSON 401 error response
+ * Phase 4 will rewrite the filter chain to:
+ * - Require authentication on all non-auth endpoints
+ * - Add the JWT authentication filter
+ * - Configure stateless sessions
+ * - Integrate CORS with Spring Security
+ * - Add a custom JSON 401 error response
  */
 @Configuration
 @EnableWebSecurity
@@ -44,5 +45,24 @@ public class SecurityConfig {
                         .anyRequest().permitAll()
                 );
         return http.build();
+    }
+
+    /**
+     * Provides a BCrypt password encoder for hashing and verifying passwords.
+     *
+     * BCrypt is the industry standard for password hashing because:
+     * - It automatically generates a random salt (so identical passwords produce different hashes)
+     * - It's intentionally slow (making brute-force attacks impractical)
+     * - The work factor can be increased over time as hardware gets faster
+     *
+     * Used by AuthService:
+     * - Registration: passwordEncoder.encode("plaintext") → "$2a$10$N9qo8uLO..."
+     * - Login: passwordEncoder.matches("plaintext", "$2a$10$N9qo8uLO...") → true/false
+     *
+     * @return a BCryptPasswordEncoder instance managed by Spring
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

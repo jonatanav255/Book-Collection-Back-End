@@ -110,6 +110,54 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    /**
+     * Handle registration locked exceptions (403 Forbidden).
+     * Thrown when someone tries to register but a user already exists (single-user app).
+     */
+    @ExceptionHandler(RegistrationLockedException.class)
+    public ResponseEntity<Map<String, Object>> handleRegistrationLocked(RegistrationLockedException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.FORBIDDEN.value());
+        error.put("error", "Forbidden");
+        error.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
+    }
+
+    /**
+     * Handle invalid credentials exceptions (401 Unauthorized).
+     * Thrown when login fails due to wrong username or password.
+     */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCredentials(InvalidCredentialsException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.UNAUTHORIZED.value());
+        error.put("error", "Unauthorized");
+        error.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
+    }
+
+    /**
+     * Handle invalid token exceptions (401 Unauthorized).
+     * Thrown when a refresh token is invalid, expired, or revoked.
+     */
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidToken(InvalidTokenException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.UNAUTHORIZED.value());
+        error.put("error", "Unauthorized");
+        error.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         Map<String, Object> error = new HashMap<>();
