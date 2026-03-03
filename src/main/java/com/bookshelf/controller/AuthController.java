@@ -5,6 +5,8 @@ import com.bookshelf.dto.AuthResponse;
 import com.bookshelf.dto.RefreshTokenRequest;
 import com.bookshelf.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -62,6 +64,11 @@ public class AuthController {
      * @return 201 Created with tokens, or 403 if registration is locked
      */
     @Operation(summary = "Register a new user (only works once — single-user app)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "User created successfully, tokens returned"),
+            @ApiResponse(responseCode = "400", description = "Validation error (blank username, password too short)"),
+            @ApiResponse(responseCode = "403", description = "Registration locked — a user already exists")
+    })
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest request) {
         // Delegate to AuthService — it handles the single-user lock check,
@@ -85,6 +92,11 @@ public class AuthController {
      * @return 200 OK with tokens, or 401 if credentials are wrong
      */
     @Operation(summary = "Log in with username and password to receive JWT tokens")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login successful, tokens returned"),
+            @ApiResponse(responseCode = "400", description = "Validation error (blank username or password)"),
+            @ApiResponse(responseCode = "401", description = "Invalid username or password")
+    })
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         // Delegate to AuthService — it looks up the user, verifies the password,
@@ -107,6 +119,11 @@ public class AuthController {
      * @return 200 OK with new tokens, or 401 if refresh token is invalid/revoked/expired
      */
     @Operation(summary = "Exchange a refresh token for new access and refresh tokens")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "New tokens issued successfully"),
+            @ApiResponse(responseCode = "400", description = "Validation error (blank refresh token)"),
+            @ApiResponse(responseCode = "401", description = "Refresh token is invalid, revoked, or expired")
+    })
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         // Delegate to AuthService — it validates the refresh token,
@@ -132,6 +149,10 @@ public class AuthController {
      * @return 204 No Content
      */
     @Operation(summary = "Log out by revoking the refresh token")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Logout successful (token revoked)"),
+            @ApiResponse(responseCode = "400", description = "Validation error (blank refresh token)")
+    })
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
         // Delegate to AuthService — it finds and revokes the token if it exists

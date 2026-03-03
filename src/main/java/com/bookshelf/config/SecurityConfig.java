@@ -1,49 +1,137 @@
 package com.bookshelf.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Spring Security configuration.
+ * Spring Security configuration — the central place that controls WHO can access WHAT.
  *
- * PHASES 1-3 (current): Temporary "permit all" configuration with PasswordEncoder.
- * The security filter chain still allows all requests through — no authentication
- * is enforced yet. The PasswordEncoder bean was added in Phase 3 so AuthService
- * can hash passwords during registration and verify them during login.
+ * This class configures the security filter chain, which is a series of filters that
+ * every HTTP request passes through before reaching a controller. Think of it as a
+ * series of checkpoints at an airport — each filter inspects the request and decides
+ * whether to let it through.
  *
- * Phase 4 will rewrite the filter chain to:
- * - Require authentication on all non-auth endpoints
- * - Add the JWT authentication filter
- * - Configure stateless sessions
- * - Integrate CORS with Spring Security
- * - Add a custom JSON 401 error response
+ * What this configuration does:
+ * 1. Disables CSRF (not needed for stateless JWT APIs)
+ * 2. Enables CORS (delegates to WebConfig's CORS settings)
+ * 3. Sets session management to STATELESS (no server-side sessions, JWT handles state)
+ * 4. Defines which endpoints are public vs protected:
+ *    - /api/auth/** → public (login, register, refresh, logout)
+ *    - Swagger/OpenAPI docs → public (API documentation)
+ *    - Everything else → requires a valid JWT token
+ * 5. Registers the JwtAuthenticationFilter BEFORE Spring's default auth filter
+ * 6. Returns JSON error responses for 401 (instead of Spring's default HTML page)
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     /**
-     * Configures the security filter chain.
-     * Currently permits all requests — no authentication enforced yet.
-     * CSRF is disabled because this is a stateless REST API using JWT tokens.
+     * The JWT filter we created — inspects every request for a Bearer token.
+     * Injected by Spring because JwtAuthenticationFilter is annotated with @Component.
+     */
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
+
+    /**
+     * Configures the security filter chain — the heart of Spring Security.
      *
-     * @param http the HttpSecurity builder
-     * @return the configured SecurityFilterChain
+     * Every HTTP request goes through this chain in order:
+     * CORS filter → CSRF check → JWT filter → authorization check → controller
+     *
+     * @param http the HttpSecurity builder used to configure security rules
+     * @return the fully configured SecurityFilterChain
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Disable CSRF — not needed for stateless JWT-based REST APIs
+                // ── CSRF ──────────────────────────────────────────────────────
+                // Disable CSRF protection. CSRF attacks exploit cookie-based auth,
+                // but we use JWT tokens in the Authorization header, which browsers
+                // don't automatically attach to cross-origin requests. So CSRF
+                // attacks are not possible with our auth approach.
                 .csrf(csrf -> csrf.disable())
-                // Temporarily allow all requests (will be locked down in Phase 4)
+
+                // ── CORS ──────────────────────────────────────────────────────
+                // Enable CORS and delegate to WebConfig's addCorsMappings() method.
+                // Customizer.withDefaults() tells Spring Security: "use the CORS config
+                // that's already defined elsewhere (WebConfig)" instead of blocking
+                // cross-origin requests at the security filter level.
+                // Without this, Spring Security would reject preflight OPTIONS requests
+                // from the frontend (localhost:3000) before they even reach WebConfig.
+                .cors(Customizer.withDefaults())
+
+                // ── SESSION MANAGEMENT ────────────────────────────────────────
+                // STATELESS means Spring Security will NOT create or use HTTP sessions.
+                // In traditional web apps, the server stores a session cookie to track
+                // logged-in users. With JWT, the token itself carries all the info,
+                // so server-side sessions are unnecessary and wasteful.
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // ── AUTHORIZATION RULES ───────────────────────────────────────
+                // Define which endpoints are public and which require authentication.
+                // Rules are evaluated in ORDER — first match wins.
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
-                );
+                        // Auth endpoints are public — you can't require a token to get a token!
+                        .requestMatchers("/api/auth/**").permitAll()
+
+                        // Swagger/OpenAPI docs are public — accessible without login
+                        // so developers can browse the API documentation
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
+                        // EVERYTHING ELSE requires authentication.
+                        // If a request reaches here without a valid JWT token in the
+                        // SecurityContext (set by JwtAuthenticationFilter), Spring Security
+                        // will reject it and trigger the authenticationEntryPoint below.
+                        .anyRequest().authenticated()
+                )
+
+                // ── CUSTOM 401 ERROR RESPONSE ─────────────────────────────────
+                // By default, Spring Security returns an HTML error page when a request
+                // is rejected (401 Unauthorized). Since this is a REST API consumed by
+                // a frontend, we need a JSON response instead.
+                // This handler fires when an unauthenticated request hits a protected endpoint.
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write(
+                                    "{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}"
+                            );
+                        })
+                )
+
+                // ── JWT FILTER REGISTRATION ───────────────────────────────────
+                // Insert our JwtAuthenticationFilter BEFORE Spring's built-in
+                // UsernamePasswordAuthenticationFilter.
+                //
+                // The filter chain order becomes:
+                // ... → CORS → CSRF → JwtAuthenticationFilter → UsernamePasswordAuthFilter → ...
+                //
+                // Our filter runs first to extract and validate the JWT token.
+                // If valid, it sets the Authentication in SecurityContext.
+                // Then when the authorization check runs (.anyRequest().authenticated()),
+                // it sees the authentication is set and allows the request through.
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
