@@ -287,8 +287,9 @@ public class TextToSpeechService {
             // Standalone braces/semicolons (e.g., "{", "}", "};", ")")
             if (trimmed.matches("^[{}();]+$")) continue;
 
-            // C declarations and statements: lines ending with ; that have code patterns
-            if (trimmed.matches(".*[;{}]$") && trimmed.matches(".*[(){}*=<>\\[\\]&|].*")) continue;
+            // C declarations and statements: lines ending with ; or } that have multiple code patterns
+            if (trimmed.matches(".*[;{}]$") && trimmed.matches(".*[{}*<>\\[\\]&|].*")) continue;
+            if (trimmed.matches(".*[;]$") && trimmed.matches(".*\\(.*\\).*") && trimmed.matches(".*[=;{},*].*[=;{},*].*")) continue;
 
             // Lines that start with common C keywords and contain code syntax
             if (trimmed.matches("^(int |void |char |uint |unsigned |long |short |float |double |struct |enum |return |if |else |for |while |switch |case |break |continue ).*")) continue;
@@ -309,11 +310,8 @@ public class TextToSpeechService {
             // Terminal output with PIDs: hello world (pid:29383)
             if (trimmed.matches(".*\\(pid:\\d+\\).*")) continue;
 
-            // Lines that are just numbers and whitespace (e.g., "29  107  1030 p3.c")
-            if (trimmed.matches("^[\\d\\s.]+\\S*$") && !trimmed.matches(".*[a-zA-Z]{3,}.*")) continue;
-
-            // Short single-word or two-character lines (diagram labels like "A", "B", "OS")
-            if (trimmed.length() <= 3 && !trimmed.matches(".*\\s.*")) continue;
+            // Lines that are purely numbers and whitespace with no letters at all
+            if (trimmed.matches("^[\\d\\s.]+$")) continue;
 
             // --- Skip diagram/image labels ---
             // Isolated short labels commonly extracted from figures
