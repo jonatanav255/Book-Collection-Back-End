@@ -1,21 +1,19 @@
 package com.bookshelf.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * Registers a CorsFilter at the highest servlet filter priority so that
- * CORS headers are added BEFORE Spring Security processes the request.
- * This prevents 403 responses with missing CORS headers.
+ * Central CORS configuration used by Spring Security's filter chain.
+ * Exposes a CorsConfigurationSource bean that SecurityConfig picks up
+ * via Customizer.withDefaults().
  */
 @Configuration
 public class CorsFilterConfig {
@@ -24,7 +22,7 @@ public class CorsFilterConfig {
     private String allowedOrigins;
 
     @Bean
-    public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
@@ -39,9 +37,6 @@ public class CorsFilterConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
-
-        FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
-        return bean;
+        return source;
     }
 }
