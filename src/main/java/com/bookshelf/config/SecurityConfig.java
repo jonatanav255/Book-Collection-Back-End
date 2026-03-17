@@ -86,6 +86,9 @@ public class SecurityConfig {
                 // Define which endpoints are public and which require authentication.
                 // Rules are evaluated in ORDER — first match wins.
                 .authorizeHttpRequests(auth -> auth
+                        // Health check endpoint is public — used by Railway deployment healthcheck
+                        .requestMatchers("/api/health").permitAll()
+
                         // Auth endpoints are public — you can't require a token to get a token!
                         .requestMatchers("/api/auth/**").permitAll()
 
