@@ -268,14 +268,11 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    void status_returnsRegistrationOpenFalse_whenUserExists() throws Exception {
-        // Arrange: a user is already registered
-        when(authService.isUserRegistered()).thenReturn(true);
-
-        // Act & Assert: GET /api/auth/status → 200 with registrationOpen = false
+    void status_alwaysReturnsRegistrationOpenTrue() throws Exception {
+        // Act & Assert: GET /api/auth/status → 200 with registrationOpen = true always
         mockMvc.perform(get("/api/auth/status"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.registrationOpen").value(false));
+                .andExpect(jsonPath("$.registrationOpen").value(true));
     }
 
     @Test

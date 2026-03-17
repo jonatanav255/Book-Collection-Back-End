@@ -47,8 +47,8 @@ class AuthServiceTest {
 
     @Test
     void register_succeeds_whenNoUsersExist() {
-        // Arrange: no users exist yet, so registration should be allowed
-        when(userRepository.count()).thenReturn(0L);
+        // Arrange: username is not taken
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("password123")).thenReturn("$2a$10$hashedpassword");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
@@ -75,14 +75,14 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_throwsRegistrationLocked_whenUserAlreadyExists() {
-        // Arrange: a user already exists
-        when(userRepository.count()).thenReturn(1L);
+    void register_throwsRegistrationLocked_whenUsernameAlreadyTaken() {
+        // Arrange: username already exists
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(new User("admin", "hashed")));
 
         // Act & Assert: should throw RegistrationLockedException (403)
-        assertThatThrownBy(() -> authService.register(new AuthRequest("newuser", "password123")))
+        assertThatThrownBy(() -> authService.register(new AuthRequest("admin", "password123")))
                 .isInstanceOf(RegistrationLockedException.class)
-                .hasMessageContaining("Registration is locked");
+                .hasMessageContaining("Username already taken");
 
         // Verify no user was saved
         verify(userRepository, never()).save(any());
