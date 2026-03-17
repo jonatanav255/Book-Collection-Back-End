@@ -11,10 +11,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 /**
  * REST controller for authentication endpoints.
@@ -63,6 +66,14 @@ public class AuthController {
      * @param request the username and password for the new account
      * @return 201 Created with tokens, or 403 if registration is locked
      */
+    @Operation(summary = "Check if registration is available")
+    @ApiResponse(responseCode = "200", description = "Returns registration availability")
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Boolean>> status() {
+        boolean registrationOpen = !authService.isUserRegistered();
+        return ResponseEntity.ok(Map.of("registrationOpen", registrationOpen));
+    }
+
     @Operation(summary = "Register a new user (only works once — single-user app)")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "User created successfully, tokens returned"),

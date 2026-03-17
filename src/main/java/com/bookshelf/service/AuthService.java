@@ -62,6 +62,10 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    public boolean isUserRegistered() {
+        return userRepository.count() > 0;
+    }
+
     /**
      * Registers a new user account.
      *
