@@ -190,8 +190,8 @@ public class TextToSpeechService {
 
             String text = stripper.getText(document);
 
-            // Clean up the text
-            text = text.trim();
+            // Clean up the text for natural TTS output
+            text = cleanTextForSpeech(text);
 
             if (text.isEmpty()) {
                 return "This page appears to be empty or contains only images.";
@@ -248,6 +248,62 @@ public class TextToSpeechService {
             log.error("Failed to synthesize speech with Google TTS", e);
             throw new IOException("Failed to call Google Text-to-Speech API", e);
         }
+    }
+
+    /**
+     * Clean extracted PDF text for natural TTS output.
+     * Removes code blocks, shell prompts, file paths, and other
+     * content that sounds bad when read aloud.
+     */
+    private String cleanTextForSpeech(String text) {
+        String[] lines = text.split("\n");
+        StringBuilder cleaned = new StringBuilder();
+
+        for (String line : lines) {
+            String trimmed = line.trim();
+
+            // Skip empty lines
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+
+            // Skip shell prompts and command lines (e.g., "prompt> ./cpu A &")
+            if (trimmed.matches("^(\\$|#|%|>|prompt>|\\w+[@:]|\\./|sudo ).*")) {
+                continue;
+            }
+
+            // Skip lines that look like terminal output (e.g., "[1] 7353", "PID TTY")
+            if (trimmed.matches("^\\[\\d+]\\s+\\d+.*")) {
+                continue;
+            }
+
+            // Skip lines that are only single letters, numbers, or very short tokens
+            // (common in code output like "A", "B", "C", "D")
+            if (trimmed.matches("^[A-Z0-9]{1,2}$")) {
+                continue;
+            }
+
+            // Skip lines with heavy code syntax (braces, semicolons, arrows, pipes)
+            if (trimmed.matches(".*[{};|].*[{};|].*") && trimmed.length() < 80) {
+                continue;
+            }
+
+            // Skip file paths and imports
+            if (trimmed.matches("^(import |#include |/[a-zA-Z]|\\.\\.\\.).*")) {
+                continue;
+            }
+
+            // Skip lines that are mostly non-alphabetic (code, symbols)
+            long alphaCount = trimmed.chars().filter(Character::isLetter).count();
+            if (trimmed.length() > 3 && alphaCount < trimmed.length() * 0.4) {
+                continue;
+            }
+
+            cleaned.append(trimmed).append(" ");
+        }
+
+        // Collapse multiple spaces and trim
+        return cleaned.toString().replaceAll("\\s+", " ").trim();
     }
 
     /**
