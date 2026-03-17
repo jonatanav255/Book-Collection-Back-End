@@ -1,7 +1,6 @@
 package com.bookshelf.config;
 
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,12 +10,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
+import org.springframework.security.config.Customizer;
 
 /**
  * Spring Security configuration — the central place that controls WHO can access WHAT.
@@ -46,9 +40,6 @@ public class SecurityConfig {
      * Injected by Spring because JwtAuthenticationFilter is annotated with @Component.
      */
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Value("${bookshelf.cors.allowed-origins}")
-    private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -80,7 +71,7 @@ public class SecurityConfig {
                 // cross-origin requests at the security filter level.
                 // Without this, Spring Security would reject preflight OPTIONS requests
                 // from the frontend (localhost:3000) before they even reach WebConfig.
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(Customizer.withDefaults())
 
                 // ── SESSION MANAGEMENT ────────────────────────────────────────
                 // STATELESS means Spring Security will NOT create or use HTTP sessions.
@@ -145,39 +136,6 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-
-    /**
-     * Provides a BCrypt password encoder for hashing and verifying passwords.
-     *
-     * BCrypt is the industry standard for password hashing because:
-     * - It automatically generates a random salt (so identical passwords produce different hashes)
-     * - It's intentionally slow (making brute-force attacks impractical)
-     * - The work factor can be increased over time as hardware gets faster
-     *
-     * Used by AuthService:
-     * - Registration: passwordEncoder.encode("plaintext") → "$2a$10$N9qo8uLO..."
-     * - Login: passwordEncoder.matches("plaintext", "$2a$10$N9qo8uLO...") → true/false
-     *
-     * @return a BCryptPasswordEncoder instance managed by Spring
-     */
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
-        configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", configuration);
-        return source;
     }
 
     @Bean

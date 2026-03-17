@@ -81,5 +81,7 @@ logging:
   level:
     com.bookshelf: INFO
     org.springframework.web: INFO
+    org.springframework.web.cors: DEBUG
+    org.springframework.security.web.access: DEBUG
     org.apache.fontbox: "OFF"
     org.apache.pdfbox.pdmodel.font.FileSystemFontProvider: ERROR
