@@ -277,8 +277,9 @@ public class TextToSpeechService {
             // Preprocessor directives: #include <stdio.h>
             if (trimmed.matches("^#(include|define|ifdef|ifndef|endif|pragma)\\b.*")) continue;
 
-            // Numbered code listings: line number followed by any content
+            // Numbered code listings: line number followed by code or comments
             if (trimmed.matches("^\\d{1,3}\\s+\\S.*") && trimmed.matches(".*[;{}()=<>\\[\\]#*/&|\"\\\\].*")) continue;
+            if (trimmed.matches("^\\d{1,3}\\s+//.*")) continue;
 
             // Shell prompts
             if (trimmed.matches("^prompt>.*")) continue;
