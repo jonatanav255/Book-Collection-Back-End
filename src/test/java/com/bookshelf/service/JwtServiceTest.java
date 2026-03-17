@@ -142,6 +142,14 @@ class JwtServiceTest {
         assertThat(jwtService.getAccessTokenExpiration()).isEqualTo(ACCESS_EXPIRATION);
     }
 
+    // ── getRefreshTokenExpiration ───────────────────────────────────────────
+
+    @Test
+    void getRefreshTokenExpiration_returnsConfiguredValue() {
+        // Verify the getter returns the configured refresh token expiration value
+        assertThat(jwtService.getRefreshTokenExpiration()).isEqualTo(REFRESH_EXPIRATION);
+    }
+
     // ── Helper ──────────────────────────────────────────────────────────────
 
     /**

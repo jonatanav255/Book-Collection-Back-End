@@ -9,6 +9,8 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -38,6 +40,8 @@ import java.util.Collections;
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtService jwtService;
 
@@ -122,6 +126,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // we silently ignore it and let the request continue as unauthenticated.
             // Spring Security will then reject it with 401 if the endpoint requires auth.
             // We do NOT throw exceptions here — that would break the filter chain.
+            log.debug("JWT authentication failed: {}", e.getMessage());
         }
 
         // Step 11: CRITICAL — always call filterChain.doFilter() to pass the request

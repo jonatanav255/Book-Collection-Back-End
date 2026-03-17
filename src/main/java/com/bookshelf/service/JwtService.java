@@ -120,6 +120,16 @@ public class JwtService {
         return accessTokenExpiration;
     }
 
+    /**
+     * Returns the configured refresh token expiration time in milliseconds.
+     * Used by AuthService to calculate the refresh token's database expiry timestamp.
+     *
+     * @return refresh token TTL in milliseconds
+     */
+    public long getRefreshTokenExpiration() {
+        return refreshTokenExpiration;
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
 
     /**

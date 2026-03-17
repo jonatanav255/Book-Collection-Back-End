@@ -233,4 +233,24 @@ class AuthServiceTest {
         // Verify nothing was saved
         verify(refreshTokenRepository, never()).save(any());
     }
+
+    // ── isUserRegistered ────────────────────────────────────────────────────
+
+    @Test
+    void isUserRegistered_returnsFalse_whenNoUsers() {
+        // Arrange: no users in the database
+        when(userRepository.count()).thenReturn(0L);
+
+        // Act & Assert: should return false when no users are registered
+        assertThat(authService.isUserRegistered()).isFalse();
+    }
+
+    @Test
+    void isUserRegistered_returnsTrue_whenUserExists() {
+        // Arrange: one user already registered
+        when(userRepository.count()).thenReturn(1L);
+
+        // Act & Assert: should return true when a user exists
+        assertThat(authService.isUserRegistered()).isTrue();
+    }
 }

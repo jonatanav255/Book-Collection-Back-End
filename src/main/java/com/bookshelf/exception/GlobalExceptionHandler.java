@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +23,8 @@ import java.util.Map;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * Handle resource not found exceptions (404)
@@ -160,6 +165,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        log.error("Unexpected error", ex);
         Map<String, Object> error = new HashMap<>();
         error.put("timestamp", LocalDateTime.now());
         error.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());

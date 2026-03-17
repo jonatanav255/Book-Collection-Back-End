@@ -253,4 +253,40 @@ class AuthControllerIntegrationTest {
                         .header("Authorization", "Bearer expired-token"))
                 .andExpect(status().isUnauthorized());
     }
+
+    // ── Status ─────────────────────────────────────────────────────────────
+
+    @Test
+    void status_returnsRegistrationOpenTrue_whenNoUserExists() throws Exception {
+        // Arrange: no users registered yet
+        when(authService.isUserRegistered()).thenReturn(false);
+
+        // Act & Assert: GET /api/auth/status → 200 with registrationOpen = true
+        mockMvc.perform(get("/api/auth/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.registrationOpen").value(true));
+    }
+
+    @Test
+    void status_returnsRegistrationOpenFalse_whenUserExists() throws Exception {
+        // Arrange: a user is already registered
+        when(authService.isUserRegistered()).thenReturn(true);
+
+        // Act & Assert: GET /api/auth/status → 200 with registrationOpen = false
+        mockMvc.perform(get("/api/auth/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.registrationOpen").value(false));
+    }
+
+    @Test
+    void status_isPublicEndpoint() throws Exception {
+        // Arrange: no users registered (arbitrary — the point is no auth token is sent)
+        when(authService.isUserRegistered()).thenReturn(false);
+
+        // Act & Assert: GET /api/auth/status without any Authorization header → 200
+        // This proves the endpoint is accessible without authentication,
+        // just like the other /api/auth/** endpoints.
+        mockMvc.perform(get("/api/auth/status"))
+                .andExpect(status().isOk());
+    }
 }

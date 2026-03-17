@@ -233,7 +233,7 @@ public class AuthService {
         // Calculate when the refresh token expires so we can store it in the DB
         // We add the refresh token expiration (in ms, converted to seconds) to now
         LocalDateTime refreshExpiresAt = LocalDateTime.now()
-                .plusSeconds(jwtService.getAccessTokenExpiration() / 1000 * 7 * 24);
+                .plusSeconds(jwtService.getRefreshTokenExpiration() / 1000);
 
         // Persist the refresh token in the database so we can validate/revoke it later
         RefreshToken refreshTokenEntity = new RefreshToken(
