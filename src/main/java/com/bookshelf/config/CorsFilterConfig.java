@@ -1,6 +1,5 @@
 package com.bookshelf.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -18,21 +17,23 @@ public class CorsFilterConfig {
 
     private static final Logger log = LoggerFactory.getLogger(CorsFilterConfig.class);
 
-    @Value("${CORS_ORIGINS:http://localhost:3000}")
-    private String corsOrigins;
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        log.info("=== CORS CONFIG === Raw CORS_ORIGINS env value: '{}'", corsOrigins);
+        // Read directly from System.getenv to bypass any Spring property resolution issues
+        String envValue = System.getenv("CORS_ORIGINS");
+        String origins = envValue != null ? envValue : "http://localhost:3000";
+
+        log.info("=== CORS CONFIG === System.getenv('CORS_ORIGINS'): '{}'", envValue);
+        log.info("=== CORS CONFIG === Using origins: '{}'", origins);
 
         CorsConfiguration config = new CorsConfiguration();
-        List<String> origins = Arrays.stream(corsOrigins.split(","))
+        List<String> originList = Arrays.stream(origins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
-        log.info("=== CORS CONFIG === Parsed allowed origins: {}", origins);
+        log.info("=== CORS CONFIG === Parsed origin list: {}", originList);
 
-        config.setAllowedOrigins(origins);
+        config.setAllowedOrigins(originList);
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
