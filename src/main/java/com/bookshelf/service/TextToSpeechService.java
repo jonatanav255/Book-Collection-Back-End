@@ -277,8 +277,8 @@ public class TextToSpeechService {
             // Preprocessor directives: #include <stdio.h>
             if (trimmed.matches("^#(include|define|ifdef|ifndef|endif|pragma)\\b.*")) continue;
 
-            // Lines starting with line numbers followed by code (numbered code listings)
-            if (trimmed.matches("^\\d{1,3}\\s+(#include|int |void |char |return |if |else |for |while |struct |enum |printf|fprintf|assert|exit|close|open|fork|wait|exec|\\{|\\}).*")) continue;
+            // Numbered code listings: line number followed by any content
+            if (trimmed.matches("^\\d{1,3}\\s+\\S.*") && trimmed.matches(".*[;{}()=<>\\[\\]#*/&|\"\\\\].*")) continue;
 
             // Shell prompts
             if (trimmed.matches("^prompt>.*")) continue;
@@ -294,6 +294,9 @@ public class TextToSpeechService {
 
             // Lines starting with // (code comments)
             if (trimmed.startsWith("//")) continue;
+
+            // Lines containing // that are code with inline comments
+            if (trimmed.contains("//") && trimmed.matches(".*[;{}()=*\\[\\]].*")) continue;
 
             // Lines that are just a number (line numbers in code listings)
             if (trimmed.matches("^\\d{1,3}$")) continue;
