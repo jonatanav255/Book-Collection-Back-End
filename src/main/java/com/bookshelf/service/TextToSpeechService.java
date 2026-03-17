@@ -256,8 +256,8 @@ public class TextToSpeechService {
 
     /**
      * Clean extracted PDF text for natural TTS output.
-     * Removes code lines and terminal output while keeping prose,
-     * headings, footnotes, and figure captions.
+     * Filters out code, terminal I/O, diagram labels, and page footers.
+     * Keeps prose paragraphs, headings, figure captions, footnotes, and tables.
      */
     private String cleanTextForSpeech(String text) {
         String[] lines = text.split("\n");
@@ -266,53 +266,59 @@ public class TextToSpeechService {
         for (String line : lines) {
             String trimmed = line.trim();
 
-            if (trimmed.isEmpty()) {
-                continue;
-            }
+            if (trimmed.isEmpty()) continue;
 
-            // Skip shell prompts (e.g., "prompt> ./cpu A &", "$ gcc")
-            if (trimmed.matches("^(prompt>|\\$\\s|#\\s|%\\s).*")) {
-                continue;
-            }
+            // --- Skip page footers/headers ---
+            // Copyright lines, version tags, URLs
+            if (trimmed.matches("(?i)^(©|\\(c\\)|operating\\s+systems|\\[version|www\\.).*")) continue;
+            if (trimmed.matches("(?i)^(three|easy|pieces)$")) continue;
 
-            // Skip terminal output lines (e.g., "[1] 7353")
-            if (trimmed.matches("^\\[\\d+]\\s+\\d+.*")) {
-                continue;
-            }
+            // --- Skip code ---
+            // Preprocessor directives: #include <stdio.h>
+            if (trimmed.matches("^#(include|define|ifdef|ifndef|endif|pragma)\\b.*")) continue;
 
-            // Skip lines that are only 1-2 characters (e.g., "A", "B", "};")
-            if (trimmed.length() <= 2) {
-                continue;
-            }
+            // Lines starting with line numbers followed by code (numbered code listings)
+            if (trimmed.matches("^\\d{1,3}\\s+(#include|int |void |char |return |if |else |for |while |struct |enum |printf|fprintf|assert|exit|close|open|fork|wait|exec|\\{|\\}).*")) continue;
 
-            // Skip C/code-style lines: type declarations, variable declarations, etc.
-            // These start with keywords like struct, int, void, char, enum, etc. and end with ;
-            if (trimmed.matches("^(struct |int |void |char |uint |enum |unsigned |long |short |float |double |#include |#define ).*[;{]$")) {
-                continue;
-            }
+            // Shell prompts
+            if (trimmed.matches("^prompt>.*")) continue;
 
-            // Skip lines that are just a closing brace
-            if (trimmed.matches("^[}];?$")) {
-                continue;
-            }
+            // Standalone braces/semicolons (e.g., "{", "}", "};", ")")
+            if (trimmed.matches("^[{}();]+$")) continue;
 
-            // Skip lines that start with // (code comments — not prose)
-            if (trimmed.startsWith("//")) {
-                continue;
-            }
+            // C declarations and statements: lines ending with ; that have code patterns
+            if (trimmed.matches(".*[;{}]$") && trimmed.matches(".*[(){}*=<>\\[\\]&|].*")) continue;
 
-            // Skip lines where letters make up less than 30% (pure code/symbols)
-            long letterCount = trimmed.chars().filter(Character::isLetter).count();
-            long spaceCount = trimmed.chars().filter(c -> c == ' ').count();
-            long readableChars = letterCount + spaceCount;
-            if (trimmed.length() > 5 && readableChars < trimmed.length() * 0.3) {
-                continue;
-            }
+            // Lines that start with common C keywords and contain code syntax
+            if (trimmed.matches("^(int |void |char |uint |unsigned |long |short |float |double |struct |enum |return |if |else |for |while |switch |case |break |continue ).*")) continue;
 
+            // Lines starting with // (code comments)
+            if (trimmed.startsWith("//")) continue;
+
+            // Lines that are just a number (line numbers in code listings)
+            if (trimmed.matches("^\\d{1,3}$")) continue;
+
+            // --- Skip terminal output ---
+            // Process IDs: [1] 7353
+            if (trimmed.matches("^\\[\\d+]\\s+\\d+.*")) continue;
+
+            // Terminal output with PIDs: hello world (pid:29383)
+            if (trimmed.matches(".*\\(pid:\\d+\\).*")) continue;
+
+            // Lines that are just numbers and whitespace (e.g., "29  107  1030 p3.c")
+            if (trimmed.matches("^[\\d\\s.]+\\S*$") && !trimmed.matches(".*[a-zA-Z]{3,}.*")) continue;
+
+            // Short single-word or two-character lines (diagram labels like "A", "B", "OS")
+            if (trimmed.length() <= 3 && !trimmed.matches(".*\\s.*")) continue;
+
+            // --- Skip diagram/image labels ---
+            // Isolated short labels commonly extracted from figures
+            if (trimmed.matches("^(CPU|Memory|Disk|Program|Process|code|static data|heap|stack|Blocked|Running|Ready|Scheduled|Descheduled|I/O:?\\s*(initiate|done))$")) continue;
+
+            // Keep everything else (prose, headings, captions, footnotes, table content)
             cleaned.append(trimmed).append(" ");
         }
 
-        // Collapse multiple spaces and trim
         return cleaned.toString().replaceAll("\\s+", " ").trim();
     }
 
