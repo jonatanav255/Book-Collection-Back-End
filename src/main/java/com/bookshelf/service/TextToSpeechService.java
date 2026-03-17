@@ -256,8 +256,10 @@ public class TextToSpeechService {
 
     /**
      * Clean extracted PDF text for natural TTS output.
-     * Filters out code, terminal I/O, diagram labels, and page footers.
-     * Keeps prose paragraphs, headings, figure captions, footnotes, and tables.
+     * Only keeps lines that are natural language prose — sentences that
+     * a human would want to hear read aloud.
+     * Skips: code, comments, terminal output, figures, diagrams, tables,
+     * page footers, and anything that isn't a readable sentence or heading.
      */
     private String cleanTextForSpeech(String text) {
         String[] lines = text.split("\n");
@@ -268,57 +270,39 @@ public class TextToSpeechService {
 
             if (trimmed.isEmpty()) continue;
 
-            // --- Skip page footers/headers ---
-            // Copyright lines, version tags, URLs
-            if (trimmed.matches("(?i)^(©|\\(c\\)|operating\\s+systems|\\[version|www\\.).*")) continue;
-            if (trimmed.matches("(?i)^(three|easy|pieces)$")) continue;
+            // --- KEEP: lines that look like prose ---
+            // A prose line must:
+            // 1. Be at least 40 chars (a short sentence) OR be a heading/caption
+            // 2. Have mostly letters and spaces (>60% of characters)
+            // 3. Contain at least 3 words with 3+ letters each (real words, not symbols)
 
-            // --- Skip code ---
-            // Preprocessor directives: #include <stdio.h>
-            if (trimmed.matches("^#(include|define|ifdef|ifndef|endif|pragma)\\b.*")) continue;
+            // Count letters and spaces
+            long letterCount = trimmed.chars().filter(Character::isLetter).count();
+            long spaceCount = trimmed.chars().filter(c -> c == ' ').count();
+            double readableRatio = (double)(letterCount + spaceCount) / trimmed.length();
 
-            // Numbered code listings: line number followed by code or comments
-            if (trimmed.matches("^\\d{1,3}\\s+\\S.*") && trimmed.matches(".*[;{}()=<>\\[\\]#*/&|\"\\\\].*")) continue;
-            if (trimmed.matches("^\\d{1,3}\\s+//.*")) continue;
+            // Count real words (3+ letters)
+            long realWordCount = java.util.Arrays.stream(trimmed.split("\\s+"))
+                    .filter(w -> w.chars().filter(Character::isLetter).count() >= 3)
+                    .count();
 
-            // Shell prompts
-            if (trimmed.matches("^prompt>.*")) continue;
+            // Prose: 40+ chars, >60% readable, 3+ real words
+            boolean isProse = trimmed.length() >= 40 && readableRatio > 0.6 && realWordCount >= 3;
 
-            // Standalone braces/semicolons (e.g., "{", "}", "};", ")")
-            if (trimmed.matches("^[{}();]+$")) continue;
+            // Headings: shorter but still mostly words (e.g., "THE ABSTRACTION: THE PROCESS")
+            boolean isHeading = trimmed.length() >= 10 && readableRatio > 0.8 && realWordCount >= 2
+                    && !trimmed.matches(".*[;{}()=<>\\[\\]*&|#/\\\\].*");
 
-            // C declarations and statements: lines ending with ; or } that have multiple code patterns
-            if (trimmed.matches(".*[;{}]$") && trimmed.matches(".*[{}*<>\\[\\]&|].*")) continue;
-            if (trimmed.matches(".*[;]$") && trimmed.matches(".*\\(.*\\).*") && trimmed.matches(".*[=;{},*].*[=;{},*].*")) continue;
+            // Figure captions: "Figure 4.5: ..."
+            boolean isCaption = trimmed.matches("(?i)^(figure|table|tip|aside|crux)\\s+\\d.*");
 
-            // Lines that start with common C keywords and contain code syntax
-            if (trimmed.matches("^(int |void |char |uint |unsigned |long |short |float |double |struct |enum |return |if |else |for |while |switch |case |break |continue ).*")) continue;
+            // Footnote markers: lines starting with a superscript number then prose
+            boolean isFootnote = trimmed.matches("^\\d{1,2}[A-Z].*") && trimmed.length() >= 30
+                    && readableRatio > 0.6 && realWordCount >= 3;
 
-            // Lines starting with // (code comments)
-            if (trimmed.startsWith("//")) continue;
-
-            // Lines containing // that are code with inline comments
-            if (trimmed.contains("//") && trimmed.matches(".*[;{}()=*\\[\\]].*")) continue;
-
-            // Lines that are just a number (line numbers in code listings)
-            if (trimmed.matches("^\\d{1,3}$")) continue;
-
-            // --- Skip terminal output ---
-            // Process IDs: [1] 7353
-            if (trimmed.matches("^\\[\\d+]\\s+\\d+.*")) continue;
-
-            // Terminal output with PIDs: hello world (pid:29383)
-            if (trimmed.matches(".*\\(pid:\\d+\\).*")) continue;
-
-            // Lines that are purely numbers and whitespace with no letters at all
-            if (trimmed.matches("^[\\d\\s.]+$")) continue;
-
-            // --- Skip diagram/image labels ---
-            // Isolated short labels commonly extracted from figures
-            if (trimmed.matches("^(CPU|Memory|Disk|Program|Process|code|static data|heap|stack|Blocked|Running|Ready|Scheduled|Descheduled|I/O:?\\s*(initiate|done))$")) continue;
-
-            // Keep everything else (prose, headings, captions, footnotes, table content)
-            cleaned.append(trimmed).append(" ");
+            if (isProse || isHeading || isCaption || isFootnote) {
+                cleaned.append(trimmed).append(" ");
+            }
         }
 
         return cleaned.toString().replaceAll("\\s+", " ").trim();
