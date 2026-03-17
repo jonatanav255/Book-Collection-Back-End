@@ -70,7 +70,8 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Returns registration availability")
     @GetMapping("/status")
     public ResponseEntity<Map<String, Boolean>> status() {
-        return ResponseEntity.ok(Map.of("registrationOpen", true));
+        boolean registrationOpen = !authService.isUserRegistered();
+        return ResponseEntity.ok(Map.of("registrationOpen", registrationOpen));
     }
 
     @Operation(summary = "Register a new user (only works once — single-user app)")

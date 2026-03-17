@@ -86,9 +86,9 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse register(AuthRequest request) {
-        // Prevent duplicate usernames
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new RegistrationLockedException("Username already taken.");
+        // Single-user lock: only allow registration if no users exist
+        if (userRepository.count() > 0) {
+            throw new RegistrationLockedException("Registration is locked. An account already exists.");
         }
 
         // Hash the password with BCrypt before storing — BCrypt automatically generates
