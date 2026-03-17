@@ -19,19 +19,19 @@ public class CorsFilterConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        // Read directly from System.getenv to bypass any Spring property resolution issues
         String envValue = System.getenv("CORS_ORIGINS");
-        String origins = envValue != null ? envValue : "http://localhost:3000";
+        // Fallback includes both production and local origins
+        String origins = envValue != null && !envValue.isBlank()
+                ? envValue
+                : "https://books.jonathan-dev.com,http://localhost:3000";
 
-        log.info("=== CORS CONFIG === System.getenv('CORS_ORIGINS'): '{}'", envValue);
-        log.info("=== CORS CONFIG === Using origins: '{}'", origins);
+        log.info("=== CORS CONFIG === CORS_ORIGINS env: '{}', using: '{}'", envValue, origins);
 
         CorsConfiguration config = new CorsConfiguration();
         List<String> originList = Arrays.stream(origins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
-        log.info("=== CORS CONFIG === Parsed origin list: {}", originList);
 
         config.setAllowedOrigins(originList);
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
