@@ -7,27 +7,31 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Central CORS configuration used by Spring Security's filter chain.
- * Exposes a CorsConfigurationSource bean that SecurityConfig picks up
- * via Customizer.withDefaults().
- */
 @Configuration
 public class CorsFilterConfig {
 
-    @Value("${bookshelf.cors.allowed-origins}")
-    private String allowedOrigins;
+    private static final Logger log = LoggerFactory.getLogger(CorsFilterConfig.class);
+
+    @Value("${CORS_ORIGINS:http://localhost:3000}")
+    private String corsOrigins;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        log.info("=== CORS CONFIG === Raw CORS_ORIGINS env value: '{}'", corsOrigins);
+
         CorsConfiguration config = new CorsConfiguration();
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+        List<String> origins = Arrays.stream(corsOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
+        log.info("=== CORS CONFIG === Parsed allowed origins: {}", origins);
+
         config.setAllowedOrigins(origins);
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
@@ -36,7 +40,7 @@ public class CorsFilterConfig {
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 }
