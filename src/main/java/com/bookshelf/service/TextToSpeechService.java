@@ -188,13 +188,17 @@ public class TextToSpeechService {
             stripper.setStartPage(pageNumber);
             stripper.setEndPage(pageNumber);
 
-            String text = stripper.getText(document);
+            String rawText = stripper.getText(document).trim();
+
+            if (rawText.isEmpty()) {
+                return "This page appears to be empty or contains only images.";
+            }
 
             // Clean up the text for natural TTS output
-            text = cleanTextForSpeech(text);
+            String text = cleanTextForSpeech(rawText);
 
             if (text.isEmpty()) {
-                return "This page appears to be empty or contains only images.";
+                return "This page contains code or diagrams.";
             }
 
             // Google TTS has a character limit per request
@@ -252,8 +256,8 @@ public class TextToSpeechService {
 
     /**
      * Clean extracted PDF text for natural TTS output.
-     * Removes code blocks, shell prompts, file paths, and other
-     * content that sounds bad when read aloud.
+     * Removes code lines and terminal output while keeping prose,
+     * headings, footnotes, and figure captions.
      */
     private String cleanTextForSpeech(String text) {
         String[] lines = text.split("\n");
@@ -262,40 +266,46 @@ public class TextToSpeechService {
         for (String line : lines) {
             String trimmed = line.trim();
 
-            // Skip empty lines
             if (trimmed.isEmpty()) {
                 continue;
             }
 
-            // Skip shell prompts and command lines (e.g., "prompt> ./cpu A &")
-            if (trimmed.matches("^(\\$|#|%|>|prompt>|\\w+[@:]|\\./|sudo ).*")) {
+            // Skip shell prompts (e.g., "prompt> ./cpu A &", "$ gcc")
+            if (trimmed.matches("^(prompt>|\\$\\s|#\\s|%\\s).*")) {
                 continue;
             }
 
-            // Skip lines that look like terminal output (e.g., "[1] 7353", "PID TTY")
+            // Skip terminal output lines (e.g., "[1] 7353")
             if (trimmed.matches("^\\[\\d+]\\s+\\d+.*")) {
                 continue;
             }
 
-            // Skip lines that are only single letters, numbers, or very short tokens
-            // (common in code output like "A", "B", "C", "D")
-            if (trimmed.matches("^[A-Z0-9]{1,2}$")) {
+            // Skip lines that are only 1-2 characters (e.g., "A", "B", "};")
+            if (trimmed.length() <= 2) {
                 continue;
             }
 
-            // Skip lines with heavy code syntax (braces, semicolons, arrows, pipes)
-            if (trimmed.matches(".*[{};|].*[{};|].*") && trimmed.length() < 80) {
+            // Skip C/code-style lines: type declarations, variable declarations, etc.
+            // These start with keywords like struct, int, void, char, enum, etc. and end with ;
+            if (trimmed.matches("^(struct |int |void |char |uint |enum |unsigned |long |short |float |double |#include |#define ).*[;{]$")) {
                 continue;
             }
 
-            // Skip file paths and imports
-            if (trimmed.matches("^(import |#include |/[a-zA-Z]|\\.\\.\\.).*")) {
+            // Skip lines that are just a closing brace
+            if (trimmed.matches("^[}];?$")) {
                 continue;
             }
 
-            // Skip lines that are mostly non-alphabetic (code, symbols)
-            long alphaCount = trimmed.chars().filter(Character::isLetter).count();
-            if (trimmed.length() > 3 && alphaCount < trimmed.length() * 0.4) {
+            // Skip lines that start with // (code comments — not prose)
+            if (trimmed.startsWith("//")) {
+                continue;
+            }
+
+            // Skip lines where letters make up less than 30% (pure code/symbols)
+            long letterCount = trimmed.chars().filter(Character::isLetter).count();
+            long spaceCount = trimmed.chars().filter(c -> c == ' ').count();
+            long readableChars = letterCount + spaceCount;
+            if (trimmed.length() > 5 && readableChars < trimmed.length() * 0.3) {
                 continue;
             }
 
